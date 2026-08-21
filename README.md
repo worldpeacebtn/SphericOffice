@@ -10,3 +10,13 @@ X42 • AoE • why not try • PROJEXT 42 • Projekt 42 • Project 42
 [•••] that’s also the promise and contract it’s all in 01 🎭 Q
 
 🐰🔎 it was rly the HIVE🐝MIND under attack a bit as always the legion steps in🪽
+
+✨
+
+[W0RLDCITIZEN TALKS - WHILE WE P0KER OVER THE PLANET]
+♠️ omg y grammar NHZ1 keep the mistakes that u find - sorry gift for u
+♥️ oki ~ I will #rmbr #uR #kindness
+♣️ preserve your breath - the pollution rates going up
+♦️ [•••] preserve - the poison marks are on 7/10!
+
+🐈‍⬛🃏 - der schwarze Peter voted FREE WILL & INSPIRED ACTIONS
