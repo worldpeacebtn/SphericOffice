@@ -1,1 +1,877 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CyberMind: Neon Pixel Vault & Persona HUD</title>
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#05050a',
+                            panel: '#0f0f1b',
+                            border: '#1f1f3a',
+                            neonPink: '#ff007f',
+                            neonCyan: '#00f0ff',
+                            neonPurple: '#9d00ff',
+                            neonGreen: '#39ff14',
+                            neonYellow: '#ffea00'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts for Cyber/Pixel aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #05050a;
+            color: #00f0ff;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        
+        /* Neon Glow Utility */
+        .glow-cyan { text-shadow: 0 0 8px rgba(0,240,255,0.8), 0 0 20px rgba(0,240,255,0.4); }
+        .glow-pink { text-shadow: 0 0 8px rgba(255,0,127,0.8), 0 0 20px rgba(255,0,127,0.4); }
+        .glow-purple { text-shadow: 0 0 8px rgba(157,0,255,0.8), 0 0 20px rgba(157,0,255,0.4); }
+        .glow-green { text-shadow: 0 0 8px rgba(57,255,20,0.8), 0 0 20px rgba(57,255,20,0.4); }
+        .glow-yellow { text-shadow: 0 0 8px rgba(255,234,0,0.8), 0 0 20px rgba(255,234,0,0.4); }
 
+        .box-glow-cyan { box-shadow: 0 0 15px rgba(0,240,255,0.3), inset 0 0 10px rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.5); }
+        .box-glow-pink { box-shadow: 0 0 15px rgba(255,0,127,0.3), inset 0 0 10px rgba(255,0,127,0.1); border: 1px solid rgba(255,0,127,0.5); }
+        .box-glow-purple { box-shadow: 0 0 15px rgba(157,0,255,0.3), inset 0 0 10px rgba(157,0,255,0.1); border: 1px solid rgba(157,0,255,0.5); }
+
+        /* CRT Scanlines Overlay */
+        .scanlines {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #05050a; }
+        ::-webkit-scrollbar-thumb { background: #1f1f3a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative select-none">
+
+    <!-- CRT Scanline Overlay -->
+    <div class="fixed inset-0 scanlines z-50 pointer-events-none opacity-60"></div>
+
+    <!-- Background Starry Night & Cyber Grid Canvas -->
+    <canvas id="bgCanvas" class="fixed inset-0 z-0 pointer-events-none"></canvas>
+
+    <!-- Main Header -->
+    <header class="relative z-10 border-b border-cyber-border bg-cyber-panel/80 backdrop-blur-md px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-cyber-neonCyan to-cyber-neonPurple flex items-center justify-center font-orbitron font-bold text-cyber-bg text-lg shadow-lg">
+                Ψ
+            </div>
+            <div>
+                <h1 id="appTitle" class="font-orbitron font-bold text-lg glow-cyan tracking-wider">CYBERMIND // 16</h1>
+                <p class="text-xs text-slate-400">LOCAL VAULT & HUD v1.0</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="switchTab('vault')" id="btnTabVault" class="px-3 py-1.5 text-xs font-orbitron rounded bg-cyber-neonCyan/20 border border-cyber-neonCyan text-cyber-neonCyan transition-all">VAULT</button>
+            <button onclick="switchTab('test')" id="btnTabTest" class="px-3 py-1.5 text-xs font-orbitron rounded bg-cyber-panel border border-cyber-border text-slate-400 hover:text-cyber-neonPink transition-all">PERSONA HUD</button>
+            <button onclick="exportVaultZip()" title="Export Vault & App bundle" class="px-2.5 py-1.5 text-xs font-orbitron rounded bg-cyber-neonPurple/20 border border-cyber-neonPurple text-cyber-neonPurple flex items-center space-x-1">
+                <span>📦 ZIP/EXPORT</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto p-4 md:p-6 pb-20">
+
+        <!-- ================= VAULT VIEW ================= -->
+        <div id="viewVault" class="space-y-6">
+            <!-- Quick Save Box & Drag-Drop Dropzone -->
+            <div id="dropZone" class="box-glow-cyan bg-cyber-panel/90 rounded-xl p-4 md:p-6 transition-all border-dashed border-2 border-cyber-neonCyan/40 relative">
+                <div class="absolute top-2 right-2 text-[10px] text-cyber-neonCyan/60 font-orbitron uppercase tracking-widest">Local 10MB Secure Buffer</div>
+                <h2 class="font-orbitron text-sm font-semibold mb-3 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-cyber-neonCyan animate-pulse"></span>
+                    <span>NEURAL BUFFER // QUICK INPUT & DRAG DROP</span>
+                </h2>
+                
+                <div class="space-y-3">
+                    <input type="text" id="noteTitle" placeholder="Note / Thought Title..." class="w-full bg-cyber-bg border border-cyber-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyber-neonCyan transition-colors">
+                    <textarea id="noteContent" rows="3" placeholder="Type thoughts, paste snippets, or drag & drop files / images / text here..." class="w-full bg-cyber-bg border border-cyber-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyber-neonCyan transition-colors resize-none"></textarea>
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <div class="flex items-center space-x-2 text-xs text-slate-400">
+                            <label class="cursor-pointer bg-cyber-border hover:bg-cyber-neonCyan/20 px-3 py-1.5 rounded border border-cyber-border transition-colors flex items-center space-x-1">
+                                <span>📁 Attach File/Media</span>
+                                <input type="file" id="fileInput" class="hidden" multiple onchange="handleFileSelect(event)">
+                            </label>
+                            <span id="attachedCount" class="text-cyber-neonCyan">0 attached</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="clearInput()" class="px-3 py-1.5 rounded text-xs font-orbitron bg-slate-800 text-slate-300 hover:bg-slate-700">CLEAR</button>
+                            <button onclick="saveNote()" class="px-4 py-1.5 rounded text-xs font-orbitron font-bold bg-cyber-neonCyan text-cyber-bg hover:bg-cyber-neonCyan/80 glow-cyan transition-all">💾 SAVE THOUGHT</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter Bar -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="relative w-full sm:w-72">
+                    <input type="text" id="searchInput" oninput="renderNotes()" placeholder="Search neural logs..." class="w-full bg-cyber-panel border border-cyber-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyber-neonCyan">
+                </div>
+                <div class="flex items-center space-x-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                    <button onclick="setFilter('all')" id="filterAll" class="filter-btn px-3 py-1.5 rounded text-xs font-orbitron bg-cyber-neonCyan/20 text-cyber-neonCyan border border-cyber-neonCyan">ALL</button>
+                    <button onclick="setFilter('note')" id="filterNote" class="filter-btn px-3 py-1.5 rounded text-xs font-orbitron bg-cyber-panel text-slate-400 border border-cyber-border">NOTES</button>
+                    <button onclick="setFilter('test_result')" id="filterTest" class="filter-btn px-3 py-1.5 rounded text-xs font-orbitron bg-cyber-panel text-slate-400 border border-cyber-border">TEST RESULTS</button>
+                    <button onclick="setFilter('media')" id="filterMedia" class="filter-btn px-3 py-1.5 rounded text-xs font-orbitron bg-cyber-panel text-slate-400 border border-cyber-border">MEDIA</button>
+                </div>
+            </div>
+
+            <!-- Notes Grid/List -->
+            <div id="notesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Notes will populate dynamically -->
+            </div>
+        </div>
+
+        <!-- ================= PERSONA TEST & HUD VIEW ================= -->
+        <div id="viewTest" class="hidden space-y-6">
+            <!-- Test Intro / Active Questionnaire -->
+            <div id="testContainer" class="box-glow-purple bg-cyber-panel/90 rounded-xl p-6 relative">
+                <div class="absolute top-2 right-2 text-[10px] text-cyber-neonPurple font-orbitron uppercase">Psychometric HUD v2.5</div>
+                <h2 class="font-orbitron text-lg font-bold mb-2 glow-purple">PSYCHOPRINT & DARK TRIAD / EMPATH SCANNER</h2>
+                <p class="text-xs text-slate-300 mb-6">Answer the following psychological vectors to calibrate your personal neural HUD theme and generate a 3D personality distribution matrix.</p>
+
+                <div id="questionBox" class="space-y-6">
+                    <!-- Populated via JS -->
+                </div>
+
+                <div id="testActions" class="mt-6 flex justify-between items-center hidden">
+                    <span id="questionProgress" class="text-xs text-slate-400 font-orbitron">Question 1 of 10</span>
+                    <button onclick="nextQuestion()" class="px-6 py-2 rounded text-xs font-orbitron font-bold bg-cyber-neonPurple text-white glow-purple hover:opacity-90 transition-all">NEXT VECTOR ➔</button>
+                </div>
+            </div>
+
+            <!-- 3D HUD Results Display (Hidden initially) -->
+            <div id="resultsContainer" class="hidden space-y-6">
+                <div class="box-glow-pink bg-cyber-panel/90 rounded-xl p-6 relative">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div class="space-y-3 flex-1">
+                            <div class="inline-block px-2.5 py-1 rounded text-[10px] font-orbitron bg-cyber-neonPink/20 text-cyber-neonPink border border-cyber-neonPink">CALIBRATION COMPLETE</div>
+                            <h3 id="resultArchetype" class="font-orbitron text-2xl font-extrabold glow-pink">--</h3>
+                            <p id="resultDescription" class="text-sm text-slate-300 leading-relaxed"></p>
+                            
+                            <div class="pt-2 flex flex-wrap gap-3">
+                                <button onclick="saveTestToVault()" class="px-4 py-2 rounded text-xs font-orbitron font-bold bg-cyber-neonPink text-cyber-bg hover:opacity-90 glow-pink">💾 SAVE RESULT TO VAULT</button>
+                                <button onclick="applyThemeFromTest()" id="applyThemeBtn" class="px-4 py-2 rounded text-xs font-orbitron font-bold bg-cyber-neonCyan text-cyber-bg hover:opacity-90 glow-cyan">⚡ APPLY HUD THEME</button>
+                                <button onclick="retakeTest()" class="px-4 py-2 rounded text-xs font-orbitron bg-slate-800 text-slate-300 hover:bg-slate-700">🔄 RETAKE TEST</button>
+                            </div>
+                        </div>
+
+                        <!-- 3D Canvas Matrix Visualizer -->
+                        <div class="w-full md:w-72 h-72 relative flex items-center justify-center bg-cyber-bg rounded-lg border border-cyber-border overflow-hidden">
+                            <canvas id="hudCanvas" class="w-full h-full cursor-grab"></canvas>
+                            <div class="absolute bottom-2 text-[10px] text-slate-500 font-orbitron pointer-events-none">Interactive 3D Matrix (Drag to Rotate)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trait Breakdown Bars -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-cyber-panel border border-cyber-border rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-orbitron text-xs text-cyber-neonCyan">EMPATHY SCORE</span>
+                            <span id="scoreEmpath" class="font-orbitron text-sm font-bold text-cyber-neonCyan">0%</span>
+                        </div>
+                        <div class="w-full bg-cyber-bg h-2 rounded-full overflow-hidden border border-cyber-border">
+                            <div id="barEmpath" class="bg-cyber-neonCyan h-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-cyber-panel border border-cyber-border rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-orbitron text-xs text-cyber-neonPurple">DARK EMPATH</span>
+                            <span id="scoreDarkEmpath" class="font-orbitron text-sm font-bold text-cyber-neonPurple">0%</span>
+                        </div>
+                        <div class="w-full bg-cyber-bg h-2 rounded-full overflow-hidden border border-cyber-border">
+                            <div id="barDarkEmpath" class="bg-cyber-neonPurple h-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="bg-cyber-panel border border-cyber-border rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-orbitron text-xs text-cyber-neonPink">DARK TRIAD</span>
+                            <span id="scoreDarkTriad" class="font-orbitron text-sm font-bold text-cyber-neonPink">0%</span>
+                        </div>
+                        <div class="w-full bg-cyber-bg h-2 rounded-full overflow-hidden border border-cyber-border">
+                            <div id="barDarkTriad" class="bg-cyber-neonPink h-full transition-all duration-1000" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Custom Modal for Details / Viewing Notes -->
+    <div id="noteModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-cyber-panel border border-cyber-border rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto box-glow-cyan">
+            <div class="flex justify-between items-start">
+                <h3 id="modalTitle" class="font-orbitron font-bold text-lg text-white"></h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white font-orbitron text-sm">✕</button>
+            </div>
+            <div id="modalMeta" class="text-xs text-slate-400"></div>
+            <div id="modalContent" class="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed"></div>
+            <div id="modalMediaContainer" class="space-y-2 pt-2"></div>
+            <div class="flex justify-end pt-4 border-t border-cyber-border space-x-2">
+                <button onclick="deleteCurrentNote()" class="px-3 py-1.5 rounded text-xs font-orbitron bg-red-900/40 text-red-400 border border-red-800 hover:bg-red-900">DELETE THOUGHT</button>
+                <button onclick="closeModal()" class="px-4 py-1.5 rounded text-xs font-orbitron bg-cyber-neonCyan text-cyber-bg font-bold">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-cyber-panel border border-cyber-neonCyan px-4 py-3 rounded-lg shadow-xl flex items-center space-x-3 box-glow-cyan">
+        <span id="toastIcon" class="text-cyber-neonCyan font-bold">⚡</span>
+        <span id="toastMsg" class="text-xs font-orbitron text-white">Notification message</span>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // --- State Management ---
+        let vaultState = {
+            notes: [],
+            currentTheme: 'cyan', // cyan, pink, purple, green
+            activeFilter: 'all'
+        };
+
+        let currentAttachments = []; // Array of {name, type, data}
+        let currentEditingNoteId = null;
+
+        // Personality Test Questions
+        const questions = [
+            { q: "When someone is visibly distressed in a group, what is your immediate internal reflex?", options: [
+                { text: "I instantly feel their emotional weight and need to comfort them.", empath: 3, darkEmpath: 1, darkTriad: 0 },
+                { text: "I understand precisely why they are upset, even if I don't personally feel sad.", empath: 0, darkEmpath: 3, darkTriad: 1 },
+                { text: "I calculate how their emotional state might impact my current objectives.", empath: 0, darkEmpath: 1, darkTriad: 3 }
+            ]},
+            { q: "How do you view interpersonal manipulation?", options: [
+                { text: "Repulsive; genuine honesty and emotional transparency are mandatory.", empath: 3, darkEmpath: 0, darkTriad: 0 },
+                { text: "A fascinating psychological tool; I understand influence without malice.", empath: 1, darkEmpath: 3, darkTriad: 1 },
+                { text: "A natural advantage in chess and life; everyone does it anyway.", empath: 0, darkEmpath: 1, darkTriad: 3 }
+            ]},
+            { q: "What drives your ambition in social or professional hierarchies?", options: [
+                { text: "Creating harmony, supporting peers, and collaborative upliftment.", empath: 3, darkEmpath: 1, darkTriad: 0 },
+                { text: "Gaining psychological insight and being the invisible architect behind the scenes.", empath: 1, darkEmpath: 3, darkTriad: 1 },
+                { text: "Pure dominance, control, status, and outperforming rivals.", empath: 0, darkEmpath: 0, darkTriad: 3 }
+            ]},
+            { q: "How do you process personal criticism or conflict?", options: [
+                { text: "It deeply affects me; I internalize and reflect on how I hurt them.", empath: 3, darkEmpath: 1, darkTriad: 0 },
+                { text: "I analyze the critic's hidden psychological motives with detached amusement.", empath: 0, darkEmpath: 3, darkTriad: 1 },
+                { text: "I dismiss or retaliate; weakness in others is an opportunity.", empath: 0, darkEmpath: 0, darkTriad: 3 }
+            ]},
+            { q: "When navigating complex social circles, you feel most like:", options: [
+                { text: "A warm harbor where people feel safe to share their vulnerabilities.", empath: 3, darkEmpath: 1, darkTriad: 0 },
+                { text: "A chameleon who reads every hidden agenda while projecting charm.", empath: 1, darkEmpath: 3, darkTriad: 1 },
+                { text: "A grandmaster evaluating pieces on a board for strategic leverage.", empath: 0, darkEmpath: 1, darkTriad: 3 }
+            ]}
+        ];
+
+        let currentQuestionIndex = 0;
+        let testScores = { empath: 0, darkEmpath: 0, darkTriad: 0 };
+        let lastTestResult = null;
+
+        // --- Initialization on Load ---
+        window.onload = function() {
+            loadFromLocalStorage();
+            initBackgroundCanvas();
+            renderNotes();
+            initTest();
+            setupDragAndDrop();
+        };
+
+        // --- Storage Persistence (10MB Local) ---
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('cybermind_vault');
+                if (saved) {
+                    vaultState = JSON.parse(saved);
+                } else {
+                    // Seed initial welcome note
+                    vaultState.notes = [{
+                        id: 'note_' + Date.now(),
+                        title: 'SYSTEM INITIALIZED // WELCOME TO CYBERMIND',
+                        content: 'Your secure local offline vault is online. You can drag and drop text, images, or files directly into this app. Data is safely stored in your browser local storage (up to 10MB capacity). Test your personality in the Persona HUD tab to customize your neon frequency.',
+                        type: 'note',
+                        date: new Date().toISOString(),
+                        attachments: []
+                    }];
+                    saveToLocalStorage();
+                }
+                applyTheme(vaultState.currentTheme || 'cyan');
+            } catch (e) {
+                console.error("Storage error:", e);
+                showToast("Storage warning: Running in volatile mode.", "⚠️");
+            }
+        }
+
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('cybermind_vault', JSON.stringify(vaultState));
+            } catch (e) {
+                showToast("Error: Storage limit near 10MB capacity reached!", "❌");
+            }
+        }
+
+        // --- Tab Switching ---
+        function switchTab(tab) {
+            const vaultView = document.getElementById('viewVault');
+            const testView = document.getElementById('viewTest');
+            const btnVault = document.getElementById('btnTabVault');
+            const btnTest = document.getElementById('btnTabTest');
+
+            if (tab === 'vault') {
+                vaultView.classList.remove('hidden');
+                testView.classList.add('hidden');
+                btnVault.className = "px-3 py-1.5 text-xs font-orbitron rounded bg-cyber-neonCyan/20 border border-cyber-neonCyan text-cyber-neonCyan transition-all";
+                btnTest.className = "px-3 py-1.5 text-xs font-orbitron rounded bg-cyber-panel border border-cyber-border text-slate-400 hover:text-cyber-neonPink transition-all";
+                renderNotes();
+            } else {
+                vaultView.classList.add('hidden');
+                testView.classList.remove('hidden');
+                btnTest.className = "px-3 py-1.5 text-xs font-orbitron rounded bg-cyber-neonPink/20 border border-cyber-neonPink text-cyber-neonPink transition-all";
+                btnVault.className = "px-3 py-1.5 text-xs font-orbitron rounded bg-cyber-panel border border-cyber-border text-slate-400 hover:text-cyber-neonCyan transition-all";
+            }
+        }
+
+        // --- Drag & Drop / File Attachment System ---
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.add('border-cyber-neonPink', 'bg-cyber-neonPink/10');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropZone.classList.remove('border-cyber-neonPink', 'bg-cyber-neonPink/10');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                const textData = dt.getData('text/plain');
+
+                if (files && files.length > 0) {
+                    handleFiles(files);
+                } else if (textData) {
+                    const contentArea = document.getElementById('noteContent');
+                    contentArea.value += (contentArea.value ? '\n\n' : '') + textData;
+                    if (!document.getElementById('noteTitle').value) {
+                        document.getElementById('noteTitle').value = "Dropped Text Snippet";
+                    }
+                    showToast("Text payload ingested into buffer.", "📥");
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            handleFiles(e.target.files);
+        }
+
+        function handleFiles(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    currentAttachments.push({
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        data: evt.target.result
+                    });
+                    updateAttachmentUI();
+                };
+                if (file.type.startsWith('image/')) {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsDataURL(file); // Store as data url for downloadability
+                }
+            }
+        }
+
+        function updateAttachmentUI() {
+            const badge = document.getElementById('attachedCount');
+            badge.innerText = `${currentAttachments.length} attached item(s)`;
+            if (currentAttachments.length > 0 && !document.getElementById('noteTitle').value) {
+                document.getElementById('noteTitle').value = "Media Log: " + currentAttachments[0].name;
+            }
+            showToast(`${currentAttachments.length} media payload(s) buffered.`, "📎");
+        }
+
+        function clearInput() {
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+            currentAttachments = [];
+            document.getElementById('attachedCount').innerText = '0 attached';
+        }
+
+        // --- Vault CRUD Operations ---
+        function saveNote() {
+            const title = document.getElementById('noteTitle').value.trim();
+            const content = document.getElementById('noteContent').value.trim();
+
+            if (!title && !content && currentAttachments.length === 0) {
+                showToast("Cannot save empty neural thought.", "⚠️");
+                return;
+            }
+
+            const newNote = {
+                id: 'note_' + Date.now(),
+                title: title || 'Untitled Thought',
+                content: content,
+                type: currentAttachments.length > 0 ? 'media' : 'note',
+                date: new Date().toISOString(),
+                attachments: [...currentAttachments]
+            };
+
+            vaultState.notes.unshift(newNote);
+            saveToLocalStorage();
+            clearInput();
+            renderNotes();
+            showToast("Thought successfully persisted to local vault.", "💾");
+        }
+
+        function setFilter(filter) {
+            vaultState.activeFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = "filter-btn px-3 py-1.5 rounded text-xs font-orbitron bg-cyber-panel text-slate-400 border border-cyber-border";
+            });
+            const activeBtn = document.getElementById(
+                filter === 'all' ? 'filterAll' :
+                filter === 'note' ? 'filterNote' :
+                filter === 'test_result' ? 'filterTest' : 'filterMedia'
+            );
+            activeBtn.className = "filter-btn px-3 py-1.5 rounded text-xs font-orbitron bg-cyber-neonCyan/20 text-cyber-neonCyan border border-cyber-neonCyan";
+            renderNotes();
+        }
+
+        function renderNotes() {
+            const container = document.getElementById('notesContainer');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = vaultState.notes.filter(note => {
+                const matchesFilter = vaultState.activeFilter === 'all' || note.type === vaultState.activeFilter;
+                const matchesSearch = note.title.toLowerCase().includes(search) || note.content.toLowerCase().includes(search);
+                return matchesFilter && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-slate-500 font-orbitron text-xs">
+                        NO NEURAL RECORDS FOUND IN ACTIVE BUFFER.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(note => {
+                const dateStr = new Date(note.date).toLocaleString();
+                const typeColor = note.type === 'test_result' ? 'text-cyber-neonPink border-cyber-neonPink/40' : note.type === 'media' ? 'text-cyber-neonPurple border-cyber-neonPurple/40' : 'text-cyber-neonCyan border-cyber-neonCyan/40';
+                
+                return `
+                    <div onclick="openNoteModal('${note.id}')" class="bg-cyber-panel border border-cyber-border hover:border-cyber-neonCyan/60 rounded-xl p-4 cursor-pointer transition-all flex flex-col justify-between space-y-3 relative group">
+                        <div class="absolute top-3 right-3 text-[9px] font-orbitron px-2 py-0.5 rounded border ${typeColor} uppercase">${note.type}</div>
+                        <div>
+                            <h3 class="font-orbitron font-bold text-sm text-white group-hover:text-cyber-neonCyan transition-colors pr-16">${escapeHtml(note.title)}</h3>
+                            <p class="text-xs text-slate-400 mt-2 line-clamp-3">${escapeHtml(note.content || '[Attached Media Payload]')}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-cyber-border/60 text-[10px] text-slate-500 font-orbitron">
+                            <span>${dateStr}</span>
+                            <span>${note.attachments && note.attachments.length > 0 ? `📎 ${note.attachments.length} file(s)` : ''}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openNoteModal(id) {
+            const note = vaultState.notes.find(n => n.id === id);
+            if (!note) return;
+            currentEditingNoteId = id;
+
+            document.getElementById('modalTitle').innerText = note.title;
+            document.getElementById('modalMeta').innerText = `Type: ${note.type.toUpperCase()} | Recorded: ${new Date(note.date).toLocaleString()}`;
+            document.getElementById('modalContent').innerText = note.content;
+
+            const mediaContainer = document.getElementById('modalMediaContainer');
+            mediaContainer.innerHTML = '';
+            if (note.attachments && note.attachments.length > 0) {
+                mediaContainer.innerHTML = `<div class="text-xs font-orbitron text-cyber-neonCyan pt-2">ATTACHED MEDIA:</div>`;
+                note.attachments.forEach(att => {
+                    if (att.type.startsWith('image/')) {
+                        mediaContainer.innerHTML += `<div class="mt-2"><img src="${att.data}" class="max-h-60 rounded border border-cyber-border mx-auto object-contain"></div>`;
+                    } else {
+                        mediaContainer.innerHTML += `<div class="mt-1"><a href="${att.data}" download="${att.name}" class="text-xs text-cyber-neonCyan underline">${att.name} (${Math.round(att.size/1024)} KB)</a></div>`;
+                    }
+                });
+            }
+
+            document.getElementById('noteModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('noteModal').classList.add('hidden');
+            currentEditingNoteId = null;
+        }
+
+        function deleteCurrentNote() {
+            if (!currentEditingNoteId) return;
+            vaultState.notes = vaultState.notes.filter(n => n.id !== currentEditingNoteId);
+            saveToLocalStorage();
+            closeModal();
+            renderNotes();
+            showToast("Thought purged from vault.", "🗑️");
+        }
+
+        // --- Persona Test Questionnaire Engine ---
+        function initTest() {
+            currentQuestionIndex = 0;
+            testScores = { empath: 0, darkEmpath: 0, darkTriad: 0 };
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('testContainer').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const qBox = document.getElementById('questionBox');
+            const progress = document.getElementById('questionProgress');
+            const actions = document.getElementById('testActions');
+
+            if (currentQuestionIndex >= questions.length) {
+                calculateTestResults();
+                return;
+            }
+
+            actions.classList.remove('hidden');
+            const q = questions[currentQuestionIndex];
+            progress.innerText = `Vector ${currentQuestionIndex + 1} of ${questions.length}`;
+
+            qBox.innerHTML = `
+                <div class="space-y-4">
+                    <h3 class="font-orbitron font-semibold text-sm md:text-base text-white">Q${currentQuestionIndex + 1}. ${q.q}</h3>
+                    <div class="space-y-2">
+                        ${q.options.map((opt, idx) => `
+                            <label class="flex items-start space-x-3 p-3 rounded-lg border border-cyber-border hover:border-cyber-neonPurple bg-cyber-bg/60 cursor-pointer transition-all">
+                                <input type="radio" name="testOption" value="${idx}" class="mt-1 accent-cyber-neonPurple">
+                                <span class="text-xs text-slate-200">${opt.text}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function nextQuestion() {
+            const selected = document.querySelector('input[name="testOption"]:checked');
+            if (!selected) {
+                showToast("Select a vector response to proceed.", "⚠️");
+                return;
+            }
+
+            const optIndex = parseInt(selected.value);
+            const q = questions[currentQuestionIndex];
+            const choice = q.options[optIndex];
+
+            testScores.empath += choice.empath;
+            testScores.darkEmpath += choice.darkEmpath;
+            testScores.darkTriad += choice.darkTriad;
+
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        function calculateTestResults() {
+            document.getElementById('testContainer').classList.add('hidden');
+            document.getElementById('resultsContainer').classList.remove('hidden');
+
+            const total = testScores.empath + testScores.darkEmpath + testScores.darkTriad || 1;
+            const pEmpath = Math.round((testScores.empath / total) * 100);
+            const pDarkEmpath = Math.round((testScores.darkEmpath / total) * 100);
+            const pDarkTriad = Math.round((testScores.darkTriad / total) * 100);
+
+            document.getElementById('scoreEmpath').innerText = pEmpath + '%';
+            document.getElementById('scoreDarkEmpath').innerText = pDarkEmpath + '%';
+            document.getElementById('scoreDarkTriad').innerText = pDarkTriad + '%';
+
+            setTimeout(() => {
+                document.getElementById('barEmpath').style.width = pEmpath + '%';
+                document.getElementById('barDarkEmpath').style.width = pDarkEmpath + '%';
+                document.getElementById('barDarkTriad').style.width = pDarkTriad + '%';
+            }, 100);
+
+            let archetype = "NEUTRAL OBSERVER";
+            let desc = "Your neural profile is balanced across multiple psychological vectors without dominant extremes.";
+            let recommendedTheme = "cyan";
+
+            if (pEmpath >= pDarkEmpath && pEmpath >= pDarkTriad) {
+                archetype = "PURE EMPATH // FREQUENCY: CYAN";
+                desc = "High resonance with emotional altruism, deep interpersonal connection, and harmony-seeking neural patterns.";
+                recommendedTheme = "cyan";
+            } else if (pDarkEmpath >= pEmpath && pDarkEmpath >= pDarkTriad) {
+                archetype = "DARK EMPATH // FREQUENCY: PURPLE";
+                desc = "A rare synthesis: sharp cognitive empathy paired with tactical detachment. You understand human mechanics intimately.";
+                recommendedTheme = "purple";
+            } else {
+                archetype = "DARK TRIAD DOMINANT // FREQUENCY: PINK";
+                desc = "High calculation, strategic leverage, independence, and dominance. You view social matrices as chessboards.";
+                recommendedTheme = "pink";
+            }
+
+            lastTestResult = {
+                archetype,
+                desc,
+                scores: { empath: pEmpath, darkEmpath: pDarkEmpath, darkTriad: pDarkTriad },
+                theme: recommendedTheme
+            };
+
+            init3DMatrixVisualizer(pEmpath, pDarkEmpath, pDarkTriad);
+            document.getElementById('resultArchetype').innerText = archetype;
+            document.getElementById('resultDescription').innerText = desc;
+        }
+
+        function retakeTest() {
+            initTest();
+        }
+
+        function saveTestToVault() {
+            if (!lastTestResult) return;
+            const newNote = {
+                id: 'test_' + Date.now(),
+                title: `HUD Persona Test: ${lastTestResult.archetype}`,
+                content: `${lastTestResult.desc}\n\nMetrics:\n- Empath: ${lastTestResult.scores.empath}%\n- Dark Empath: ${lastTestResult.scores.darkEmpath}%\n- Dark Triad: ${lastTestResult.scores.darkTriad}%`,
+                type: 'test_result',
+                date: new Date().toISOString(),
+                attachments: []
+            };
+            vaultState.notes.unshift(newNote);
+            saveToLocalStorage();
+            showToast("Test result archived in vault.", "💾");
+        }
+
+        function applyThemeFromTest() {
+            if (!lastTestResult) return;
+            applyTheme(lastTestResult.theme);
+            showToast(`HUD frequency shifted to ${lastTestResult.theme.toUpperCase()}`, "⚡");
+        }
+
+        function applyTheme(themeName) {
+            vaultState.currentTheme = themeName;
+            saveToLocalStorage();
+            
+            const root = document.documentElement;
+            // Adjust visual glow/accents
+            showToast(`Theme calibrated: ${themeName.toUpperCase()}`, "🎨");
+        }
+
+        // --- 3D Matrix Canvas Visualizer ---
+        let hudAnimationId = null;
+        function init3DMatrixVisualizer(e, de, dt) {
+            const canvas = document.getElementById('hudCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            let angleX = 0;
+            let angleY = 0;
+            let isDragging = false;
+            let lastX = 0, lastY = 0;
+
+            canvas.onmousedown = (e) => { isDragging = true; lastX = e.clientX; lastY = e.clientY; };
+            window.onmouseup = () => { isDragging = false; };
+            canvas.onmousemove = (e) => {
+                if (!isDragging) return;
+                angleY += (e.clientX - lastX) * 0.01;
+                angleX += (e.clientY - lastY) * 0.01;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            };
+
+            // Touch support for iPhone
+            canvas.ontouchstart = (e) => { isDragging = true; lastX = e.touches[0].clientX; lastY = e.touches[0].clientY; };
+            window.ontouchend = () => { isDragging = false; };
+            canvas.ontouchmove = (e) => {
+                if (!isDragging) return;
+                angleY += (e.touches[0].clientX - lastX) * 0.01;
+                angleX += (e.touches[0].clientY - lastY) * 0.01;
+                lastX = e.touches[0].clientX;
+                lastY = e.touches[0].clientY;
+            };
+
+            if (hudAnimationId) cancelAnimationFrame(hudAnimationId);
+
+            function renderHUD3D() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+
+                if (!isDragging) {
+                    angleY += 0.01; // Auto rotate
+                }
+
+                // Draw 3D wireframe pyramid/triangle representing the 3 traits
+                const radius = 70;
+                const points = [
+                    { x: 0, y: -radius * (e/50), z: 0, color: '#00f0ff', label: 'Empath' },
+                    { x: -radius * (de/50), y: radius * 0.6, z: radius * 0.6, color: '#9d00ff', label: 'Dark Empath' },
+                    { x: radius * (dt/50), y: radius * 0.6, z: -radius * 0.6, color: '#ff007f', label: 'Dark Triad' }
+                ];
+
+                // Project 3D points
+                const projected = points.map(p => {
+                    // Rotate around Y
+                    let x1 = p.x * Math.cos(angleY) - p.z * Math.sin(angleY);
+                    let z1 = p.x * Math.sin(angleY) + p.z * Math.cos(angleY);
+                    // Rotate around X
+                    let y1 = p.y * Math.cos(angleX) - z1 * Math.sin(angleX);
+                    let z2 = p.y * Math.sin(angleX) + z1 * Math.cos(angleX);
+
+                    const fov = 300;
+                    const scale = fov / (fov + z2 + 150);
+                    return {
+                        x: cx + x1 * scale,
+                        y: cy + y1 * scale,
+                        color: p.color,
+                        label: p.label,
+                        scale: scale
+                    };
+                });
+
+                // Draw connecting lines
+                ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(projected[0].x, projected[0].y);
+                ctx.lineTo(projected[1].x, projected[1].y);
+                ctx.lineTo(projected[2].x, projected[2].y);
+                ctx.closePath();
+                ctx.stroke();
+
+                // Draw nodes
+                projected.forEach(p => {
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 6 * p.scale, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '10px Orbitron';
+                    ctx.fillText(p.label, p.x + 10, p.y + 4);
+                });
+
+                hudAnimationId = requestAnimationFrame(renderHUD3D);
+            }
+            renderHUD3D();
+        }
+
+        // --- Background Night Sky & Pixel Starfield Animation ---
+        function initBackgroundCanvas() {
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.onresize = resize;
+            resize();
+
+            const stars = Array.from({ length: 80 }, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2,
+                speed: Math.random() * 0.2 + 0.05,
+                alpha: Math.random()
+            }));
+
+            function animateBg() {
+                ctx.fillStyle = '#05050a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw starry night pixel points
+                stars.forEach(s => {
+                    s.y -= s.speed;
+                    if (s.y < 0) s.y = canvas.height;
+                    ctx.fillStyle = `rgba(0, 240, 255, ${s.alpha})`;
+                    ctx.fillRect(s.x, s.y, s.size, s.size);
+                });
+
+                // Subtle Cyber Grid Lines
+                ctx.strokeStyle = 'rgba(31, 31, 58, 0.3)';
+                ctx.lineWidth = 1;
+                const gridSize = 40;
+                for (let x = 0; x < canvas.width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                requestAnimationFrame(animateBg);
+            }
+            animateBg();
+        }
+
+        // --- Export / Download Vault Bundle ---
+        function exportVaultZip() {
+            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'CyberMind_Vault_iPhone16.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Complete offline webapp bundle downloaded (< 1MB).", "📦");
+        }
+
+        // --- Toast Utility ---
+        function showToast(msg, icon = "⚡") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            document.getElementById('toastIcon').innerText = icon;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
