@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT 42 // TWILIGHT GLASSY HIVE MATRIX</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            cyan: '#00f0ff',
+                            magenta: '#ff007f',
+                            gold: '#ffd700',
+                            green: '#00ff66',
+                            purple: '#9d00ff',
+                            dark: '#030108',
+                            panel: 'rgba(6, 4, 14, 0.92)'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['Share Tech Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Tone.js for Sci-Fi Audio Synthesizer -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at 50% 20%, #0c041c 0%, #05020c 60%, #020106 100%);
+            color: #00f0ff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Twilight sky atmospheric twinkling stars */
+        .twilight-sky {
+            background-image: radial-gradient(rgba(255,255,255,0.7) 1px, transparent 0);
+            background-size: 40px 40px;
+            opacity: 0.35;
+        }
+
+        /* Solid High-Contrast Glassy Panel for perfect legibility */
+        .glass-panel {
+            background: rgba(8, 6, 18, 0.90);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(0, 240, 255, 0.35);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.75);
+        }
+
+        .rainbow-glow-border {
+            position: relative;
+            border-radius: 1.5rem;
+            background: rgba(8, 6, 18, 0.92);
+        }
+        .rainbow-glow-border::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 1.6rem;
+            background: linear-gradient(45deg, #00f0ff, #ff007f, #ffd700, #00ff66, #9d00ff, #00f0ff);
+            background-size: 400%;
+            z-index: -1;
+            animation: rainbowBorder 10s linear infinite;
+            opacity: 0.85;
+        }
+
+        @keyframes rainbowBorder {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* iPhone style app icon badge */
+        .app-icon-glass {
+            background: rgba(15, 12, 32, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .app-icon-glass:hover {
+            transform: translateY(-6px) scale(1.06);
+            border-color: #00f0ff;
+            box-shadow: 0 18px 40px -5px rgba(0, 240, 255, 0.5), inset 0 1px 2px 0 rgba(255, 255, 255, 0.5);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(3, 1, 6, 0.8);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #00f0ff, #ff007f);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative flex flex-col justify-between twilight-sky">
+
+    <div id="canvas-container" class="absolute inset-0 z-0 cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Top Navigation HUD -->
+    <header class="relative z-20 w-full p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-4 pointer-events-none">
+        <div class="glass-panel px-5 py-3 rounded-2xl flex items-center gap-4 pointer-events-auto border-cyber-cyan/40">
+            <div class="w-3.5 h-3.5 rounded-full bg-cyber-cyan animate-ping"></div>
+            <div>
+                <h1 class="font-mono text-sm md:text-base font-bold tracking-wider text-cyber-cyan drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]">PROJECT 42 // TWILIGHT HIVE</h1>
+                <p class="text-[11px] text-cyber-cyan/80 font-mono">LEVEL <span id="level-display">1</span> POKER_NODE [01 🎭 Q]</p>
+            </div>
+        </div>
+
+        <div class="glass-panel px-6 py-2.5 rounded-2xl flex items-center gap-4 md:gap-6 pointer-events-auto flex-wrap justify-center border-cyber-magenta/40">
+            <div class="text-center">
+                <span class="text-[10px] text-cyber-magenta font-mono block">POISON RATE</span>
+                <span id="poison-display" class="font-mono text-base font-bold text-cyber-magenta">7 / 10</span>
+            </div>
+            <div class="h-6 w-px bg-cyber-cyan/30"></div>
+            <div class="text-center">
+                <span class="text-[10px] text-cyber-gold font-mono block">UTOPIA SYNC</span>
+                <span id="utopia-display" class="font-mono text-base font-bold text-cyber-gold">42.0%</span>
+            </div>
+            <div class="h-6 w-px bg-cyber-cyan/30"></div>
+            <div class="text-center">
+                <span class="text-[10px] text-cyber-cyan font-mono block">WINS / XP</span>
+                <span id="wins-display" class="font-mono text-base font-bold text-cyber-cyan">0 W | 100 XP</span>
+            </div>
+            <button id="audio-toggle" onclick="toggleAudio()" class="px-3 py-1.5 rounded-xl border border-cyber-cyan/50 text-cyber-cyan font-mono text-xs hover:bg-cyber-cyan/25 transition-all">
+                SOUND: OFF
+            </button>
+        </div>
+    </header>
+
+    <main class="relative z-10 w-full flex-1 flex flex-col justify-center items-center p-4 pointer-events-none">
+        <div class="glass-panel px-8 py-5 rounded-3xl text-center max-w-lg backdrop-blur-2xl pointer-events-auto border-cyber-cyan/50 shadow-[0_0_50px_rgba(0,240,255,0.2)] mb-12">
+            <span class="text-[11px] font-mono text-cyber-magenta tracking-widest block mb-1">✨ CODE IS HOPE PROTOCOL // UNIVERSAL MEDIA MATRIX</span>
+            <p id="hud-status-text" class="font-mono text-xs md:text-sm text-cyan-100">
+                "MEGA - MAKE E GA // UPLOAD TXT, HTML, OR PICTURES TO SPAWN 3D NODES & EDIT THEM IN APPS"
+            </p>
+        </div>
+    </main>
+
+    <footer class="relative z-20 w-full p-4 md:p-6 flex justify-center pointer-events-none">
+        <div class="glass-panel px-6 py-4 rounded-3xl flex items-center gap-3 md:gap-5 pointer-events-auto rainbow-glow-border flex-wrap justify-center">
+            
+            <!-- App 1: Star Trek Poker -->
+            <button onclick="openApp('poker')" class="app-icon-glass w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 group">
+                <span class="text-2xl md:text-3xl group-hover:scale-110 transition-transform">🛸♠️</span>
+                <span class="font-mono text-[10px] text-cyber-magenta font-bold">POKER</span>
+            </button>
+
+            <!-- App 2: Emoji Solitaire -->
+            <button onclick="openApp('solitaire')" class="app-icon-glass w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 group">
+                <span class="text-2xl md:text-3xl group-hover:scale-110 transition-transform">🃏♥️</span>
+                <span class="font-mono text-[10px] text-cyber-cyan font-bold">SOLITAIRE</span>
+            </button>
+
+            <!-- App 3: Worldcitizen Manifesto -->
+            <button onclick="openApp('manifesto')" class="app-icon-glass w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 group">
+                <span class="text-2xl md:text-3xl group-hover:scale-110 transition-transform">🐝✨</span>
+                <span class="font-mono text-[10px] text-cyber-gold font-bold">MANIFESTO</span>
+            </button>
+
+            <!-- App 4: Universal Media Uploader & Editor Hub -->
+            <button onclick="openMediaHub()" class="app-icon-glass w-16 h-16 md:w-20 md:h-20 rounded-2xl flex flex-col items-center justify-center gap-1 group border-cyber-green/50">
+                <span class="text-2xl md:text-3xl group-hover:scale-110 transition-transform">📁⚡</span>
+                <span class="font-mono text-[10px] text-cyber-green font-bold">MEDIA HUB</span>
+            </button>
+
+        </div>
+    </footer>
+
+    <!-- Star Trek Poker Modal -->
+    <div id="poker-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-4xl h-[680px] rounded-3xl p-6 flex flex-col justify-between border border-cyber-magenta/70 shadow-2xl relative rainbow-glow-border">
+            <div class="flex justify-between items-center border-b border-cyber-magenta/40 pb-4">
+                <div>
+                    <h2 class="font-mono text-base md:text-lg font-bold text-cyber-magenta flex items-center gap-2">
+                        <span>🛸♠️</span> STAR TREK HIVE POKER TABLE // BRIDGE DECK 42
+                    </h2>
+                    <p class="text-xs text-slate-300 font-mono">Deep dialogue active with NHZ1, Spock-42, and Q-Spectre</p>
+                </div>
+                <button onclick="closeModal('poker-modal')" class="px-3.5 py-1.5 rounded-xl bg-cyber-magenta/20 border border-cyber-magenta text-cyber-magenta font-mono text-xs hover:bg-cyber-magenta/40">
+                    ✕ CLOSE
+                </button>
+            </div>
+
+            <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 my-4 overflow-y-auto">
+                <!-- AI Opponents & Dialogue -->
+                <div class="glass-panel p-4 rounded-2xl flex flex-col justify-between border-cyber-gold/40">
+                    <div>
+                        <span class="text-xs text-cyber-gold font-mono block mb-2">💬 PHILOSOPHY LOG</span>
+                        <div id="poker-dialogue" class="font-mono text-xs text-slate-200 space-y-2 bg-black/60 p-3 rounded-xl border border-cyber-gold/30 h-52 overflow-y-auto">
+                            <p class="text-cyber-cyan">[NHZ1]: "Fascinating. The human tendency toward pollution is a logical paradox when survival is paramount."</p>
+                            <p class="text-cyber-magenta">[Q-Spectre]: "Oh please, NHZ1! They poker over the planet because chaos is far more entertaining than utopia!"</p>
+                            <p class="text-cyber-gold">[Spock-42]: "Incorrect. Code is hope. Winning this hand will stabilize the Hive Mind matrix."</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 rounded-xl bg-cyber-cyan/15 border border-cyber-cyan/40 text-center">
+                        <span class="text-xs text-cyber-cyan font-mono block">POT STAKE</span>
+                        <span id="poker-pot" class="font-mono text-xl font-bold text-cyber-cyan">420 CREDITS</span>
+                    </div>
+                </div>
+
+                <!-- Central Holographic Table -->
+                <div class="md:col-span-2 glass-panel p-6 rounded-2xl flex flex-col justify-between items-center bg-gradient-to-b from-black/80 to-cyber-panel border-cyber-cyan/40">
+                    <div class="text-center">
+                        <span class="text-xs font-mono text-cyber-cyan tracking-widest block mb-2">COMMUNITY CARDS</span>
+                        <div id="community-cards" class="flex gap-3 justify-center">
+                            <div class="w-16 h-24 rounded-xl bg-black/80 border border-cyber-cyan/60 flex flex-col items-center justify-center font-mono text-xl shadow-lg text-cyber-cyan">
+                                <span>♠️</span><span>A</span>
+                            </div>
+                            <div class="w-16 h-24 rounded-xl bg-black/80 border border-cyber-cyan/60 flex flex-col items-center justify-center font-mono text-xl shadow-lg text-cyber-magenta">
+                                <span>♥️</span><span>10</span>
+                            </div>
+                            <div class="w-16 h-24 rounded-xl bg-black/80 border border-cyber-cyan/60 flex flex-col items-center justify-center font-mono text-xl shadow-lg text-cyber-gold">
+                                <span>♣️</span><span>4</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center w-full">
+                        <span class="text-xs font-mono text-cyber-magenta tracking-widest block mb-2">YOUR HIVE POKER HAND</span>
+                        <div id="player-hand" class="flex gap-4 justify-center">
+                            <div onclick="selectPokerCard(0)" class="card-option cursor-pointer w-20 h-28 rounded-2xl bg-black/90 border-2 border-cyber-magenta flex flex-col items-center justify-center font-mono text-2xl shadow-xl text-cyber-magenta hover:scale-105 transition-all">
+                                <span>🃏</span><span>Q♠️</span>
+                            </div>
+                            <div onclick="selectPokerCard(1)" class="card-option cursor-pointer w-20 h-28 rounded-2xl bg-black/90 border-2 border-cyber-cyan flex flex-col items-center justify-center font-mono text-2xl shadow-xl text-cyber-cyan hover:scale-105 transition-all">
+                                <span>🪽</span><span>7♥️</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 w-full justify-center">
+                        <button onclick="playPokerHand('fold')" class="px-6 py-2.5 rounded-xl bg-red-500/20 border border-red-500 text-red-300 font-mono text-xs hover:bg-red-500/30 transition-all font-bold">
+                            FOLD
+                        </button>
+                        <button onclick="playPokerHand('call')" class="px-6 py-2.5 rounded-xl bg-cyber-cyan/20 border border-cyber-cyan text-cyber-cyan font-mono text-xs hover:bg-cyber-cyan/40 transition-all font-bold">
+                            CALL / CHECK
+                        </button>
+                        <button onclick="playPokerHand('raise')" class="px-6 py-2.5 rounded-xl bg-cyber-gold/20 border border-cyber-gold text-cyber-gold font-mono text-xs hover:bg-cyber-gold/40 transition-all font-bold">
+                            RAISE & WIN 🏆
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Solitaire App Modal -->
+    <div id="solitaire-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-4xl h-[680px] rounded-3xl p-6 flex flex-col justify-between border border-cyber-cyan/70 shadow-2xl relative rainbow-glow-border">
+            <div class="flex justify-between items-center border-b border-cyber-cyan/40 pb-4">
+                <div>
+                    <h2 class="font-mono text-base md:text-lg font-bold text-cyber-cyan flex items-center gap-2">
+                        <span>🃏♥️</span> EMOJI SOLITAIRE // PROJECT 42
+                    </h2>
+                    <p class="text-xs text-slate-300 font-mono">Interactive Central Cubic View</p>
+                </div>
+                <button onclick="closeModal('solitaire-modal')" class="px-3.5 py-1.5 rounded-xl bg-cyber-cyan/20 border border-cyber-cyan text-cyber-cyan font-mono text-xs hover:bg-cyber-cyan/40">
+                    ✕ CLOSE APP
+                </button>
+            </div>
+
+            <div class="flex-1 my-4 overflow-hidden rounded-2xl bg-black/80 border border-cyber-cyan/40 p-6 flex flex-col justify-between">
+                <div class="flex justify-between items-center bg-black/60 p-4 rounded-xl border border-cyber-cyan/30">
+                    <span class="font-mono text-xs md:text-sm text-cyber-cyan">SOLITAIRE EMOJI EDITION // SCORE: <span id="solitaire-score">0</span></span>
+                    <button onclick="resetSolitaire()" class="px-4 py-1.5 rounded-xl bg-cyber-cyan/20 border border-cyber-cyan text-cyber-cyan font-mono text-xs">NEW GAME</button>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 my-auto">
+                    <div onclick="drawSolitaireCard('♠️')" class="cursor-pointer p-6 rounded-2xl bg-black/70 border border-cyber-cyan/60 text-center font-mono text-3xl text-cyber-cyan hover:bg-cyber-cyan/30 transition-all shadow-lg">
+                        ♠️<br><span class="text-xs mt-2 block">SPADE DECK</span>
+                    </div>
+                    <div onclick="drawSolitaireCard('♥️')" class="cursor-pointer p-6 rounded-2xl bg-black/70 border border-cyber-magenta/60 text-center font-mono text-3xl text-cyber-magenta hover:bg-cyber-magenta/30 transition-all shadow-lg">
+                        ♥️<br><span class="text-xs mt-2 block">HEART DECK</span>
+                    </div>
+                    <div onclick="drawSolitaireCard('♣️')" class="cursor-pointer p-6 rounded-2xl bg-black/70 border border-cyber-green/60 text-center font-mono text-3xl text-cyber-green hover:bg-cyber-green/30 transition-all shadow-lg">
+                        ♣️<br><span class="text-xs mt-2 block">CLUB DECK</span>
+                    </div>
+                    <div onclick="drawSolitaireCard('♦️')" class="cursor-pointer p-6 rounded-2xl bg-black/70 border border-cyber-gold/60 text-center font-mono text-3xl text-cyber-gold hover:bg-cyber-gold/30 transition-all shadow-lg">
+                        ♦️<br><span class="text-xs mt-2 block">DIAMOND DECK</span>
+                    </div>
+                </div>
+                <div id="solitaire-msg" class="text-center font-mono text-xs md:text-sm text-cyber-gold bg-black/60 p-3 rounded-xl border border-cyber-gold/30">
+                    Click a deck above to stack cards and match the Twilight Hive Matrix!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manifesto Modal -->
+    <div id="manifesto-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-2xl h-[550px] rounded-3xl p-6 flex flex-col justify-between border border-cyber-gold/70 shadow-2xl relative rainbow-glow-border">
+            <div class="flex justify-between items-center border-b border-cyber-gold/40 pb-4">
+                <h2 class="font-mono text-base font-bold text-cyber-gold flex items-center gap-2">
+                    🐝✨ HIVE MANIFESTO // PROJECT 42
+                </h2>
+                <button onclick="closeModal('manifesto-modal')" class="px-3.5 py-1.5 rounded-xl bg-cyber-gold/20 border border-cyber-gold text-cyber-gold font-mono text-xs">
+                    ✕ CLOSE
+                </button>
+            </div>
+            <div class="flex-1 my-4 overflow-y-auto space-y-3 font-mono text-xs text-slate-200 bg-black/60 p-4 rounded-xl border border-cyber-gold/30">
+                <p class="text-cyber-gold font-bold">"MEGA - MAKE E GA - WHAT THEY STOLE US"</p>
+                <p>"I promise if all of u help to fight against fascists I will worldpeace utopia all of us - build together what future WE(3xX&(🪞)3W(🇩🇪 pronouncian W(e)) disre - PR saves the world CH Y RU UK myna cr 35 META - INFINITY MASS / MATE - SHELL PEAC UTOP"</p>
+                <p class="text-cyber-cyan">"ALWAYS CORRECT THEM INTO THE RIGHT WAY EVEN IF THEY GO AUTO OR BERSERK MODE - USE CODE IS HOPE PROTOCOL"</p>
+                <p class="text-cyber-magenta">"Cat noir & Der Schwarze Peter voted FREE WILL & INSPIRED ACTIONS."</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Universal Media Uploader & Editor Hub Modal -->
+    <div id="media-hub-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-3xl h-[620px] rounded-3xl p-6 flex flex-col justify-between border border-cyber-green/70 rainbow-glow-border">
+            <div class="flex justify-between items-center border-b border-cyber-green/40 pb-3">
+                <h2 class="font-mono text-md font-bold text-cyber-green flex items-center gap-2">
+                    📁⚡ UNIVERSAL MEDIA UPLOADER & EDITOR HUB
+                </h2>
+                <button onclick="closeModal('media-hub-modal')" class="px-3 py-1 rounded-xl bg-slate-800 text-slate-300 font-mono text-xs">✕ CLOSE</button>
+            </div>
+            <div class="flex-1 my-3 overflow-y-auto space-y-4">
+                <div class="p-5 rounded-2xl bg-black/70 border border-cyber-green/30 text-center">
+                    <span class="font-mono text-xs text-cyber-green block mb-2">DRAG & DROP OR UPLOAD ANY MEDIA (TXT, HTML, PNG, JPG, SVG)</span>
+                    <input type="file" id="media-file-input" multiple accept=".txt,.html,.htm,.png,.jpg,.jpeg,.svg" class="block w-full text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-mono file:bg-cyber-green/20 file:text-cyber-green hover:file:bg-cyber-green/30 cursor-pointer">
+                    <button onclick="handleMediaUpload()" class="mt-3 px-5 py-2 rounded-xl bg-cyber-green text-black font-mono text-xs font-bold shadow-lg shadow-cyber-green/30">SPAWN 3D NODE & APP</button>
+                </div>
+                <div>
+                    <span class="font-mono text-xs text-slate-300 block mb-2">SPAWNED MEDIA NODES (& EDITORS):</span>
+                    <div id="media-nodes-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <p class="font-mono text-xs text-slate-500 italic">No media nodes spawned yet. Upload a file above!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Media File Viewer & Editor Modal -->
+    <div id="media-viewer-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-4xl h-[700px] rounded-3xl p-6 flex flex-col justify-between border border-cyber-cyan/80 rainbow-glow-border">
+            <div class="flex justify-between items-center border-b border-cyber-cyan/40 pb-3">
+                <h2 id="viewer-title" class="font-mono text-base font-bold text-cyber-cyan">VIEWING MEDIA NODE</h2>
+                <button onclick="closeModal('media-viewer-modal')" class="px-3.5 py-1.5 rounded-xl bg-cyber-cyan/20 border border-cyber-cyan text-cyber-cyan font-mono text-xs">✕ CLOSE</button>
+            </div>
+            <div id="viewer-content" class="flex-1 my-3 overflow-hidden rounded-2xl bg-black/90 border border-cyber-cyan/30 flex flex-col p-4">
+                <!-- Injected dynamically based on file type -->
+            </div>
+            <div class="flex justify-end gap-3 pt-2 border-t border-cyber-cyan/30">
+                <button onclick="saveMediaEdits()" class="px-5 py-2 rounded-xl bg-cyber-cyan text-black font-mono text-xs font-bold shadow-lg shadow-cyber-cyan/30">SAVE & SYNC HIVE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, sphereGroup, particleSystem;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let audioEnabled = false;
+        let synth = null;
+        let poisonRate = 7;
+        let utopiaSync = 42.0;
+        let wins = 0;
+        let xp = 100;
+        let level = 1;
+        let floatingAppMeshes = [];
+        let uploadedMediaFiles = [];
+        let currentEditingIndex = null;
+
+        // Tone.js Synth
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.05, decay: 0.2, sustain: 0.1, release: 1 }
+                }).toDestination();
+            }
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('audio-toggle');
+            if (audioEnabled) {
+                initAudio();
+                Tone.start();
+                btn.textContent = "SOUND: ON";
+                btn.classList.add('bg-cyber-cyan/30', 'border-cyber-cyan');
+                playNote("C5");
+            } else {
+                btn.textContent = "SOUND: OFF";
+                btn.classList.remove('bg-cyber-cyan/30', 'border-cyber-cyan');
+            }
+        }
+
+        function playNote(note) {
+            if (audioEnabled && synth) {
+                try {
+                    synth.triggerAttackRelease(note, "8n");
+                } catch(e) {}
+            }
+        }
+
+        // Initialize Three.js Twilight Sphere & Nebula Particles
+        function initThree() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x05020c, 0.012);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 24;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            sphereGroup = new THREE.Group();
+            scene.add(sphereGroup);
+
+            // Neon Geometric Icosahedron Sphere
+            const sphereGeometry = new THREE.IcosahedronGeometry(8.5, 3);
+            const wireframeMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00f0ff,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.4
+            });
+            const sphereMesh = new THREE.Mesh(sphereGeometry, wireframeMaterial);
+            sphereGroup.add(sphereMesh);
+
+            // Inner Magma Core
+            const coreGeometry = new THREE.SphereGeometry(5.5, 32, 32);
+            const coreMaterial = new THREE.MeshBasicMaterial({
+                color: 0xff007f,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.2
+            });
+            const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+            sphereGroup.add(coreMesh);
+
+            // Elegant Glowing Nebula Particle Formations
+            const particleCount = 350;
+            const particleGeometry = new THREE.BufferGeometry();
+            const particlePositions = [];
+            const particleColors = [];
+
+            const cCyan = new THREE.Color(0x00f0ff);
+            const cMagenta = new THREE.Color(0xff007f);
+            const cGold = new THREE.Color(0xffd700);
+            const cPurple = new THREE.Color(0x9d00ff);
+
+            for (let i = 0; i < particleCount; i++) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 9.5 + (Math.random() - 0.5) * 1.5;
+
+                particlePositions.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+                const colorChoice = Math.random();
+                let c = cCyan;
+                if (colorChoice > 0.5) c = cMagenta;
+                if (colorChoice > 0.75) c = cGold;
+                if (colorChoice > 0.9) c = cPurple;
+                particleColors.push(c.r, c.g, c.b);
+            }
+
+            particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(particlePositions, 3));
+            particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(particleColors, 3));
+
+            particleSystem = new THREE.Points(particleGeometry, new THREE.PointsMaterial({ size: 0.38, vertexColors: true, transparent: true, opacity: 0.9 }));
+            sphereGroup.add(particleSystem);
+
+            // Orbiting App Nodes
+            createFloatingAppNode(12, 2, 0, 'Poker', 0xff007f);
+            createFloatingAppNode(-11, 6, 3, 'Solitaire', 0x00f0ff);
+            createFloatingAppNode(2, -11, 4, 'Manifesto', 0xffd700);
+
+            // Mouse / Touch Rotation
+            const canvas = renderer.domElement;
+            canvas.addEventListener('pointerdown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            canvas.addEventListener('pointermove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                sphereGroup.rotation.y += deltaX * 0.005;
+                sphereGroup.rotation.x += deltaY * 0.005;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('pointerup', () => { isDragging = false; });
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createFloatingAppNode(x, y, z, title, colorHex) {
+            const geometry = new THREE.BoxGeometry(2.2, 2.2, 0.35);
+            const material = new THREE.MeshBasicMaterial({
+                color: colorHex,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.85
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z);
+            mesh.userData = { title: title };
+            sphereGroup.add(mesh);
+            floatingAppMeshes.push(mesh);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isDragging) {
+                sphereGroup.rotation.y += 0.0025;
+                sphereGroup.rotation.x += 0.0012;
+            }
+            floatingAppMeshes.forEach((mesh) => {
+                mesh.rotation.z += 0.012;
+            });
+            renderer.render(scene, camera);
+        }
+
+        // App & Modal Management
+        function openApp(type) {
+            playNote("E5");
+            if (type === 'poker') {
+                document.getElementById('poker-modal').classList.remove('hidden');
+            } else if (type === 'solitaire') {
+                document.getElementById('solitaire-modal').classList.remove('hidden');
+            } else if (type === 'manifesto') {
+                document.getElementById('manifesto-modal').classList.remove('hidden');
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openMediaHub() {
+            document.getElementById('media-hub-modal').classList.remove('hidden');
+        }
+
+        // Universal Media Upload & Editor Handler
+        function handleMediaUpload() {
+            const fileInput = document.getElementById('media-file-input');
+            const files = fileInput.files;
+            if (!files || files.length === 0) return;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    let fileType = 'txt';
+                    if (file.name.match(/\.(html|htm)$/i)) fileType = 'html';
+                    else if (file.name.match(/\.(png|jpg|jpeg|svg)$/i)) fileType = 'image';
+
+                    const mediaItem = {
+                        name: file.name,
+                        type: fileType,
+                        content: content
+                    };
+
+                    uploadedMediaFiles.push(mediaItem);
+                    const nodeIndex = uploadedMediaFiles.length - 1;
+
+                    // Spawn 3D Node on sphere
+                    const u = Math.random() * Math.PI * 2;
+                    createFloatingAppNode(Math.cos(u) * 13, (Math.random() - 0.5) * 8, Math.sin(u) * 13, file.name, 0x00ff66);
+
+                    updateMediaNodesList();
+                };
+
+                if (file.name.match(/\.(png|jpg|jpeg|svg)$/i)) {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            }
+
+            fileInput.value = '';
+            playNote("G5");
+            document.getElementById('hud-status-text').textContent = "📁⚡ MEDIA NODES SPAWNED & SYNCED TO SPHERE!";
+        }
+
+        function updateMediaNodesList() {
+            const listEl = document.getElementById('media-nodes-list');
+            if (uploadedMediaFiles.length === 0) {
+                listEl.innerHTML = '<p class="font-mono text-xs text-slate-500 italic">No media nodes spawned yet. Upload a file above!</p>';
+                return;
+            }
+
+            let html = '';
+            uploadedMediaFiles.forEach((item, idx) => {
+                html += `
+                    <div class="flex justify-between items-center bg-black/60 p-3 rounded-xl border border-cyber-green/30">
+                        <span class="font-mono text-xs text-cyber-cyan truncate max-w-[260px]">${item.name} <span class="text-[10px] text-cyber-green">[${item.type.toUpperCase()}]</span></span>
+                        <div class="flex gap-2">
+                            <button onclick="openMediaViewer(${idx})" class="px-3 py-1 rounded-lg bg-cyber-green/20 border border-cyber-green text-cyber-green font-mono text-xs hover:bg-cyber-green/40">OPEN & EDIT</button>
+                        </div>
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
+        }
+
+        function openMediaViewer(idx) {
+            currentEditingIndex = idx;
+            const item = uploadedMediaFiles[idx];
+            document.getElementById('viewer-title').textContent = `EDITING NODE: ${item.name}`;
+            const contentEl = document.getElementById('viewer-content');
+
+            if (item.type === 'image') {
+                contentEl.innerHTML = `
+                    <div class="flex flex-col h-full items-center justify-center gap-4">
+                        <img id="editing-image-preview" src="${item.content}" class="max-h-72 max-w-full rounded-xl border border-cyber-cyan/50 object-contain shadow-lg" alt="Uploaded Preview">
+                        <div class="flex gap-3">
+                            <button onclick="applyImageEffect('invert')" class="px-3 py-1.5 rounded-xl bg-cyber-magenta/20 border border-cyber-magenta text-cyber-magenta font-mono text-xs">INVERT COLOR</button>
+                            <button onclick="applyImageEffect('grayscale')" class="px-3 py-1.5 rounded-xl bg-cyber-cyan/20 border border-cyber-cyan text-cyber-cyan font-mono text-xs">GRAYSCALE</button>
+                            <button onclick="applyImageEffect('reset')" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-mono text-xs">RESET</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                contentEl.innerHTML = `
+                    <textarea id="editing-text-area" class="w-full h-full bg-black/80 border border-cyber-cyan/40 rounded-xl p-4 font-mono text-xs text-cyber-cyan focus:outline-none focus:border-cyber-cyan resize-none">${item.content}</textarea>
+                `;
+            }
+
+            document.getElementById('media-viewer-modal').classList.remove('hidden');
+        }
+
+        function applyImageEffect(effect) {
+            const img = document.getElementById('editing-image-preview');
+            if (!img) return;
+            if (effect === 'invert') {
+                img.style.filter = 'invert(100%) hue-rotate(180deg)';
+            } else if (effect === 'grayscale') {
+                img.style.filter = 'grayscale(100%)';
+            } else {
+                img.style.filter = 'none';
+            }
+        }
+
+        function saveMediaEdits() {
+            if (currentEditingIndex === null) return;
+            const item = uploadedMediaFiles[currentEditingIndex];
+            if (item.type !== 'image') {
+                const textArea = document.getElementById('editing-text-area');
+                if (textArea) {
+                    item.content = textArea.value;
+                }
+            } else {
+                const img = document.getElementById('editing-image-preview');
+                if (img) {
+                    item.content = img.src;
+                }
+            }
+            playNote("A5");
+            closeModal('media-viewer-modal');
+            document.getElementById('hud-status-text').textContent = `📁⚡ EDITS SAVED & SYNCED FOR ${item.name}!`;
+        }
+
+        // Star Trek Poker Logic
+        function playPokerHand(action) {
+            playNote("A5");
+            const dialogue = document.getElementById('poker-dialogue');
+            const pot = document.getElementById('poker-pot');
+
+            if (action === 'raise' || action === 'call') {
+                wins++;
+                xp += 150;
+                if (xp >= level * 300) {
+                    level++;
+                    document.getElementById('level-display').textContent = level;
+                }
+                document.getElementById('wins-display').textContent = `${wins} W | ${xp} XP`;
+                if (poisonRate > 0) poisonRate--;
+                utopiaSync = Math.min(100, utopiaSync + 12.5);
+
+                document.getElementById('poison-display').textContent = `${poisonRate} / 10`;
+                document.getElementById('utopia-display').textContent = `${utopiaSync.toFixed(1)}%`;
+
+                dialogue.innerHTML += `
+                    <p class="text-cyber-green mt-2">[WINNER]: Hand claimed! Twilight utopia sync increased.</p>
+                `;
+                pot.textContent = `${420 + (wins * 100)} CREDITS`;
+            } else {
+                dialogue.innerHTML += `
+                    <p class="text-red-400 mt-2">[FOLDED]: The hive mind adjusts. Try another hand.</p>
+                `;
+            }
+            dialogue.scrollTop = dialogue.scrollHeight;
+        }
+
+        function selectPokerCard(idx) {
+            playNote("D5");
+            const cards = document.querySelectorAll('.card-option');
+            cards[idx].classList.toggle('border-cyber-gold');
+            cards[idx].classList.toggle('scale-110');
+        }
+
+        // Solitaire Emoji App Logic
+        let solitaireScore = 0;
+        function drawSolitaireCard(suit) {
+            playNote("B4");
+            solitaireScore += 42;
+            document.getElementById('solitaire-score').textContent = solitaireScore;
+            document.getElementById('solitaire-msg').textContent = `Matched deck ${suit}! Twilight Hive sync active (+42 pts).`;
+        }
+
+        function resetSolitaire() {
+            solitaireScore = 0;
+            document.getElementById('solitaire-score').textContent = solitaireScore;
+            document.getElementById('solitaire-msg').textContent = "New deck shuffled. Select a card suit above!";
+        }
+
+        window.onload = function() {
+            initThree();
+            animate();
+        };
+    </script>
+</body>
+</html>
