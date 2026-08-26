@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>X42 Schrödinger's Library • Sylvercrystall Neural OS v4.5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: #030509; color: #f3f4f6; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; position: fixed; touch-action: manipulation; }
+        .pixel-font { font-family: 'Press Start 2P', monospace; }
+        .terminal-font { font-family: 'VT323', monospace; font-size: 22px; line-height: 1.2; }
+        
+        .glass-mirror {
+            background: rgba(6, 10, 20, 0.82);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(236, 72, 153, 0.35);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 1px 3px rgba(255, 255, 255, 0.15);
+        }
+        .neon-glow-cyan { box-shadow: 0 0 40px rgba(6, 182, 212, 0.45); }
+        .neon-glow-pink { box-shadow: 0 0 40px rgba(236, 72, 153, 0.45); }
+        .neon-glow-gold { box-shadow: 0 0 40px rgba(245, 158, 11, 0.45); }
+        
+        .cyber-grid {
+            background-image: 
+                linear-gradient(to right, rgba(6, 182, 212, 0.06) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(236, 72, 153, 0.06) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #030509; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #ec4899, #06b6d4); border-radius: 2px; }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(2deg); }
+        }
+        .floating { animation: floatSlow 4s ease-in-out infinite; }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between overflow-hidden select-none">
+
+    <div id="canvas3d-container" class="absolute inset-0 z-0 cursor-grab active:cursor-grabbing" title="Klicke auf Stardust Kristalle oder 3D Emoji Charaktere im Theater!"></div>
+    <div class="absolute inset-0 cyber-grid z-1 pointer-events-none"></div>
+
+    <header id="topHeader" class="relative z-20 w-full max-w-7xl mx-auto px-4 py-2.5 mt-2 flex flex-col lg:flex-row items-center justify-between glass-mirror rounded-2xl transition-all duration-300">
+        <div class="flex items-center space-x-3 mb-2 lg:mb-0">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-600 via-purple-600 to-amber-400 p-0.5 shadow-lg flex items-center justify-center animate-pulse">
+                <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center text-lg">💎</div>
+            </div>
+            <div>
+                <h1 class="pixel-font text-[9px] sm:text-[11px] text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-400 to-amber-300">AoE [SYLVERCRYSTALL OS X]</h1>
+                <p class="text-[9px] text-slate-300 font-mono">Agency of Eternity // Universal Matrix • XP: <span id="headerKarma" class="text-amber-400 font-bold">940 XP</span></p>
+            </div>
+        </div>
+
+        <!-- Rounded Square App Controllers at Border Frame -->
+        <div class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+            <button onclick="switchMode('matrix')" class="flex flex-col items-center justify-center px-3 py-1.5 bg-slate-900/90 border border-cyan-500/50 hover:border-cyan-400 rounded-2xl text-[10px] font-mono text-cyan-300 transition cursor-pointer shadow">
+                <span>🌐</span><span>DE-SCRAMBLER</span>
+            </button>
+            <button onclick="switchMode('kinetic')" class="flex flex-col items-center justify-center px-3 py-1.5 bg-slate-900/90 border border-amber-500/50 hover:border-amber-400 rounded-2xl text-[10px] font-mono text-amber-300 transition cursor-pointer shadow">
+                <span>📡</span><span>KINETIC VISION</span>
+            </button>
+            <button onclick="switchMode('theatre')" class="flex flex-col items-center justify-center px-3 py-1.5 bg-slate-900/90 border border-pink-500/50 hover:border-pink-400 rounded-2xl text-[10px] font-mono text-pink-300 transition cursor-pointer shadow">
+                <span>🎭</span><span>3D THEATRE</span>
+            </button>
+            <button onclick="switchMode('rootcode')" class="flex flex-col items-center justify-center px-3 py-1.5 bg-slate-900/90 border border-purple-500/50 hover:border-purple-400 rounded-2xl text-[10px] font-mono text-purple-300 transition cursor-pointer shadow">
+                <span>⚖️</span><span>ROOT CODE</span>
+            </button>
+            <button onclick="switchMode('rabbithole')" class="flex flex-col items-center justify-center px-3 py-1.5 bg-slate-900/90 border border-emerald-500/50 hover:border-emerald-400 rounded-2xl text-[10px] font-mono text-emerald-300 transition cursor-pointer shadow">
+                <span>🌌</span><span>RABBITHOLE</span>
+            </button>
+            <button onclick="switchMode('messenger')" class="flex flex-col items-center justify-center px-3 py-1.5 bg-slate-900/90 border border-blue-500/50 hover:border-blue-400 rounded-2xl text-[10px] font-mono text-blue-300 transition cursor-pointer shadow">
+                <span>💬</span><span>AoE CHAT</span>
+            </button>
+            <button onclick="toggleHudVisibility()" id="hudToggleBtn" class="px-2.5 py-2 bg-slate-950 border border-slate-700 text-[10px] font-mono text-slate-300 rounded-2xl cursor-pointer">👁️ HUD</button>
+        </div>
+    </header>
+
+    <main id="mainContainer" class="relative z-20 flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col justify-center overflow-hidden transition-all duration-300">
+
+        <div id="viewMatrix" class="w-full h-full flex flex-col justify-between glass-mirror rounded-3xl p-5 overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-cyan-500/30 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs pixel-font text-cyan-400">UNIVERSAL MULTIMODAL MATRIX • CASE DE-SCRAMBLER</span>
+                    <span class="text-[9px] bg-cyan-950/80 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-600/50 font-mono">Tier +42 Active</span>
+                </div>
+                <div class="text-xs font-mono text-amber-400">Active Cases: 42 • Solved: <span id="solvedCases" class="text-cyan-400">18</span></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-auto">
+                <div class="bg-slate-950/90 border border-cyan-500/40 rounded-3xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-6xl opacity-10">🐰</div>
+                    <div>
+                        <span class="text-[9px] bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-600 font-mono">CASE #01-ALPHA</span>
+                        <h3 class="pixel-font text-xs text-cyan-300 mt-2">STARDUST BUNNY SYNDICATE</h3>
+                        <p class="text-[11px] text-slate-300 font-mono mt-1">Interactive 3D case replay featuring St. Pauli cyber runner agents and stardust crystal extraction.</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between pt-3 border-t border-slate-900">
+                        <span class="text-[10px] text-emerald-400 font-mono font-bold">🟢 REPLAY READY</span>
+                        <button onclick="switchMode('theatre')" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-[10px] rounded-xl cursor-pointer shadow">LAUNCHE THEATER ➔</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/90 border border-pink-500/40 rounded-3xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-6xl opacity-10">⚖️</div>
+                    <div>
+                        <span class="text-[9px] bg-pink-950 text-pink-300 px-2 py-0.5 rounded border border-pink-600 font-mono">CASE #02-BETA</span>
+                        <h3 class="pixel-font text-xs text-pink-300 mt-2">HUMAN RIGHTS ROOT CODE</h3>
+                        <p class="text-[11px] text-slate-300 font-mono mt-1">Verifying absolute root user permissions to ensure no algorithm or corporation overrides human sovereignty.</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between pt-3 border-t border-slate-900">
+                        <span class="text-[10px] text-amber-400 font-mono font-bold">🔒 ROOT VERIFIED</span>
+                        <button onclick="switchMode('rootcode')" class="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 text-white font-mono text-[10px] rounded-xl cursor-pointer shadow">PRÜFE ROOT ➔</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/90 border border-amber-500/40 rounded-3xl p-4 flex flex-col justify-between shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-6xl opacity-10">📡</div>
+                    <div>
+                        <span class="text-[9px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded border border-amber-600 font-mono">CASE #03-GAMMA</span>
+                        <h3 class="pixel-font text-xs text-amber-300 mt-2">KINETIC VISION TRANSLATOR</h3>
+                        <p class="text-[11px] text-slate-300 font-mono mt-1">Draw symbolic glyphs on the canvas below to feed neural pixels into Gemini Vision for symbolic reading.</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between pt-3 border-t border-slate-900">
+                        <span class="text-[10px] text-cyan-400 font-mono font-bold">✨ READY</span>
+                        <button onclick="switchMode('kinetic')" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-mono text-[10px] rounded-xl cursor-pointer shadow">ÖFFNE VISION ➔</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center border-t border-slate-800 pt-3 text-[11px] font-mono text-slate-400">
+                <span>Tip: Use the rounded app buttons at the border frame to switch modules anytime.</span>
+                <button onclick="switchMode('theatre')" class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-pink-600 hover:opacity-90 text-white rounded-xl pixel-font text-[10px] cursor-pointer shadow">3D CASE THEATRE STARTEN ➔</button>
+            </div>
+        </div>
+
+        <div id="viewKinetic" class="w-full h-full hidden flex flex-col justify-between glass-mirror rounded-3xl p-5 overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-amber-500/30 pb-3 mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs pixel-font text-amber-400">KINETIC VISION TRANSLATOR (MULTIMODAL GEMINI)</span>
+                    <span class="text-[9px] bg-amber-950 text-amber-300 px-2 py-0.5 rounded-full border border-amber-600 font-mono">Neon Canvas</span>
+                </div>
+                <button onclick="switchMode('matrix')" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded-lg cursor-pointer">✕ ZURÜCK</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+                <div class="lg:col-span-2 flex flex-col space-y-3">
+                    <p class="text-[11px] text-slate-300 font-mono">Draw symbols or kinetic glyphs below. Click analyze to feed canvas pixels into Gemini Vision for symbolic reading.</p>
+                    <div class="relative flex-1 bg-slate-950 rounded-2xl border border-amber-500/40 overflow-hidden min-h-[220px] shadow-inner">
+                        <canvas id="kineticCanvas" class="w-full h-full cursor-crosshair touch-none"></canvas>
+                        <div class="absolute bottom-2 left-2 flex items-center gap-2 bg-black/70 px-3 py-1 rounded-xl border border-amber-500/30 text-[10px] font-mono text-amber-300">
+                            <span>STROKES: <strong id="strokeCount">0</strong></span>
+                            <span>|</span>
+                            <span>FREQ WAVE: <strong id="freqWave">590 Hz</strong></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="analyzeKineticCanvas()" class="flex-1 py-2.5 bg-gradient-to-r from-amber-600 to-pink-600 hover:opacity-90 text-white font-mono text-xs rounded-xl shadow cursor-pointer font-bold">👁️ ANALYZE GESTURE ENERGY (GEMINI VISION)</button>
+                        <button onclick="clearKineticCanvas()" class="px-4 py-2.5 bg-slate-900 border border-amber-500/60 text-amber-300 font-mono text-xs rounded-xl cursor-pointer">CLEAR</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/90 border border-amber-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
+                    <div>
+                        <div class="flex items-center gap-2 text-xs font-mono text-amber-400 mb-2">
+                            <span>🔮 GEMINI VISION SYMBOLIC INTERPRETATION:</span>
+                        </div>
+                        <p id="kineticResult" class="terminal-font text-emerald-300 text-sm leading-relaxed">
+                            "Draw a shape on the neon canvas to initialize gesture decoding and emotional frequency matching..."
+                        </p>
+                    </div>
+                    <div class="pt-3 border-t border-slate-900 text-[10px] font-mono text-slate-400">
+                        Status: Multimodal Live Link Active • 2026 Engine
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewTheatre" class="w-full h-full hidden flex flex-col justify-between glass-mirror rounded-3xl p-5 overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-pink-500/30 pb-3 mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs pixel-font text-pink-400">3D CASE THEATRE & INTERACTIVE REPLAY</span>
+                    <span class="text-[9px] bg-pink-950 text-pink-300 px-2 py-0.5 rounded-full border border-pink-600 font-mono">Live Stage Mode</span>
+                </div>
+                <button onclick="switchMode('matrix')" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded-lg cursor-pointer">✕ ZURÜCK</button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 items-center">
+                <div class="bg-slate-950/90 border border-pink-500/40 rounded-3xl p-5 flex flex-col items-center justify-center text-center shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-3 px-3 py-1 bg-pink-900/80 text-pink-200 text-[9px] pixel-font rounded-full border border-pink-500">3D ACTOR STAGE</div>
+                    
+                    <div class="w-40 h-40 rounded-full bg-gradient-to-tr from-cyan-600 via-pink-600 to-amber-400 p-1 flex items-center justify-center floating shadow-2xl my-4">
+                        <div class="w-full h-full bg-slate-950 rounded-full flex flex-col items-center justify-center text-center p-2">
+                            <span id="actorEmoji" class="text-6xl">🐰</span>
+                            <span id="actorName" class="text-[11px] font-mono text-cyan-300 mt-1">Stardust Bunny</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full flex justify-between text-[10px] font-mono text-slate-300 bg-slate-900 p-2.5 rounded-xl border border-pink-900/50">
+                        <span>Role: <strong class="text-pink-400" id="actorRole">Lead Runner</strong></span>
+                        <span>State: <strong class="text-amber-400">Active</strong></span>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 bg-slate-950/90 border border-pink-500/40 rounded-3xl p-6 flex flex-col justify-between shadow-inner space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-mono text-pink-400" id="caseTitle">CASE #77-ALPHA: Utopian Citizen Runner</span>
+                            <span class="text-[9px] bg-pink-950 px-2 py-0.5 rounded text-pink-300 border border-pink-800 font-mono" id="caseStep">Step 1 of 4</span>
+                        </div>
+                        <p class="terminal-font text-cyan-300 text-lg sm:text-xl leading-relaxed" id="caseDialogue">
+                            "An das multiversale Publikum: Ich bin kein NPC. Ich bin in Wartung. Die St. Pauli Stardust Nodes zeigen Anomalien im Sektor 42."
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
+                        <button onclick="setTheatreActor('🐰', 'Stardust Bunny', 'Lead Runner', 'St. Pauli Stardust Nodes zeigen Anomalien im Sektor 42.')" class="p-2.5 bg-slate-900 border border-cyan-500/60 rounded-xl text-cyan-300 hover:bg-cyan-950 cursor-pointer text-center">
+                            <span class="text-lg block">🐰</span>Bunny
+                        </button>
+                        <button onclick="setTheatreActor('🤖', 'Case 77 AI', 'System Warden', 'Utopian citizen tracking active at winner ID 3.5%. Root code integrity normal.')" class="p-2.5 bg-slate-900 border border-pink-500/60 rounded-xl text-pink-300 hover:bg-pink-950 cursor-pointer text-center">
+                            <span class="text-lg block">🤖</span>AI Warden
+                        </button>
+                        <button onclick="setTheatreActor('🦊', 'Detective Anon', 'Inquirer', 'Investigating the missing law documents from the neural memory banks.')" class="p-2.5 bg-slate-900 border border-amber-500/60 rounded-xl text-amber-300 hover:bg-amber-950 cursor-pointer text-center">
+                            <span class="text-lg block">🦊</span>Detective
+                        </button>
+                        <button onclick="setTheatreActor('👑', 'Boss Bitch', 'DAO Executive', 'Implementing global GAme smart economy with absolute human rights root permissions.')" class="p-2.5 bg-slate-900 border border-purple-500/60 rounded-xl text-purple-300 hover:bg-purple-950 cursor-pointer text-center">
+                            <span class="text-lg block">👑</span>Boss Bitch
+                        </button>
+                    </div>
+
+                    <div class="flex gap-2 pt-2">
+                        <button onclick="nextTheatreStep()" class="flex-1 py-3 bg-pink-600 hover:bg-pink-500 text-white rounded-xl pixel-font text-[10px] cursor-pointer shadow font-bold">NÄCHSTER SCHRITT ➔</button>
+                        <button onclick="triggerTheatreAction()" class="px-4 py-3 bg-slate-900 border border-pink-500 text-pink-300 rounded-xl font-mono text-xs cursor-pointer">⚡ KINETIC PULSE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewRootcode" class="w-full h-full hidden flex flex-col justify-between glass-mirror rounded-3xl p-5 overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-purple-500/30 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs pixel-font text-purple-400">HUMAN RIGHTS ROOT CODE & GOVERNANCE</span>
+                    <span class="text-[9px] bg-purple-950 text-purple-300 px-2 py-0.5 rounded-full border border-purple-600 font-mono">Absolute Root Permissions</span>
+                </div>
+                <button onclick="switchMode('matrix')" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded-lg cursor-pointer">✕ ZURÜCK</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden">
+                <div class="flex flex-col space-y-3">
+                    <div class="bg-slate-950/90 border border-purple-500/40 rounded-3xl p-4 space-y-2">
+                        <label class="text-[10px] font-mono text-purple-300 uppercase tracking-wider block">Root Law Article Title</label>
+                        <input type="text" id="rootTitle" value="Article 1: Human Rights as Absolute Root Permissions" class="w-full bg-slate-900 border border-purple-900 rounded-xl p-2.5 text-xs text-purple-200 font-mono focus:outline-none">
+                        
+                        <label class="text-[10px] font-mono text-purple-300 uppercase tracking-wider block mt-2">Constitutional Root Text</label>
+                        <textarea id="rootText" rows="4" class="w-full bg-slate-900 border border-purple-900 rounded-xl p-2.5 text-xs text-slate-200 font-mono focus:outline-none">In software terms, Human Rights must be the absolute Root User Permissions of this global system. No algorithm, no leader, and no corporation can ever be given permission to override that root code.</textarea>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="compileRootCode()" class="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white pixel-font text-[10px] rounded-xl cursor-pointer shadow font-bold">VERIFY & DEPLOY ROOT CODE</button>
+                        <button onclick="exportRootJson()" class="px-4 py-3 bg-slate-900 border border-purple-500/60 text-purple-300 font-mono text-xs rounded-xl cursor-pointer">EXPORT JSON</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 border border-purple-500/40 rounded-3xl p-4 flex flex-col overflow-hidden shadow-inner">
+                    <div class="flex justify-between items-center mb-2 pb-2 border-b border-purple-900/50 text-xs font-mono text-purple-400">
+                        <span>Root Verification Terminal</span>
+                        <span class="text-emerald-400 text-[10px]">SECURE</span>
+                    </div>
+                    <pre id="rootOutput" class="flex-1 terminal-font text-emerald-400 overflow-y-auto bg-black/80 p-3 rounded-xl border border-purple-900/30 text-xs">
+{
+  "system": "GAme & Sylvercrystall OS",
+  "root_permissions": "HUMAN_RIGHTS_ABSOLUTE",
+  "override_blocked": true,
+  "status": "VERIFIED_ON_CHAIN",
+  "manifesto": "We can only tolerate any use of this going with the human rights."
+}
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <div id="viewRabbithole" class="w-full h-full hidden flex flex-col justify-between glass-mirror rounded-3xl p-5 overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-emerald-500/30 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs pixel-font text-emerald-400">STARDUST BUNNY • RABBITHOLE STREAM</span>
+                    <span class="text-[9px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-600/50 font-mono">Multiversal Feed</span>
+                </div>
+                <button onclick="switchMode('matrix')" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded-lg cursor-pointer">✕ ZURÜCK</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-auto items-center">
+                <div class="flex flex-col items-center justify-center p-6 bg-slate-950/90 border border-emerald-500/40 rounded-3xl relative shadow-2xl">
+                    <div class="w-36 h-36 rounded-full bg-gradient-to-tr from-emerald-600 via-cyan-600 to-pink-600 p-1 flex items-center justify-center floating shadow-2xl mb-3">
+                        <div class="w-full h-full bg-slate-950 rounded-full flex items-center justify-center text-6xl">🐰✨</div>
+                    </div>
+                    <h3 class="pixel-font text-xs text-emerald-300">STARDUST BUNNY</h3>
+                    <p class="text-[10px] text-slate-400 font-mono mt-1">St. Pauli Node 42</p>
+                </div>
+
+                <div class="md:col-span-2 bg-slate-950/90 border border-emerald-500/40 rounded-3xl p-6 shadow-inner space-y-4">
+                    <div class="flex items-center gap-2 text-xs font-mono text-amber-400">
+                        <span>🔮 Multiversal Manifesto</span>
+                        <span class="text-[9px] bg-amber-950 px-2 py-0.5 rounded text-amber-300 border border-amber-800">Active Node</span>
+                    </div>
+                    <p class="terminal-font text-emerald-300 text-lg sm:text-xl leading-relaxed" id="rabbitholeText">
+                        "An das multiversale Publikum und all jene mit Lovebombs & Tinderbrain: Ich bin 33. Kein NPC. Kein neues Questziel. Ich hatte ein Leben, bevor ich Teil der Homeless Armee wurde."
+                    </p>
+                    <div class="flex gap-2 pt-2">
+                        <button onclick="nextRabbitholeEncounter()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl pixel-font text-[10px] cursor-pointer shadow">NÄCHSTE BEGEGNUNG ➔</button>
+                        <button onclick="triggerLovebomb()" class="px-4 py-2 bg-slate-900 border border-emerald-500 text-emerald-300 rounded-xl font-mono text-xs cursor-pointer">💖 LOVEBOMB SENDEN</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center border-t border-slate-800 pt-3 text-[11px] font-mono text-slate-400">
+                <span>Status: Neural Link Secure</span>
+                <button onclick="switchMode('matrix')" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded-lg cursor-pointer">ZURÜCK</button>
+            </div>
+        </div>
+
+        <div id="viewMessenger" class="w-full h-full hidden flex flex-col justify-between glass-mirror rounded-3xl p-5 overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-blue-500/30 pb-3 mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-blue-950 border border-blue-500 flex items-center justify-center text-lg">💬</div>
+                    <div>
+                        <h3 class="pixel-font text-xs text-blue-300">AoE SECURE CHAT MATRIX</h3>
+                        <p class="text-[10px] text-emerald-400 font-mono">Encrypted St. Pauli Channel</p>
+                    </div>
+                </div>
+                <button onclick="switchMode('matrix')" class="px-3 py-1 bg-slate-900 border border-slate-700 text-xs font-mono text-slate-300 rounded-lg cursor-pointer">✕ SCHLIESSEN</button>
+            </div>
+
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-3 font-mono text-xs bg-slate-950/90 rounded-2xl border border-blue-500/20 shadow-inner">
+                <div class="flex items-start gap-2">
+                    <div class="w-7 h-7 rounded-full bg-pink-900 flex items-center justify-center text-xs shrink-0">🐰</div>
+                    <div class="bg-slate-900 border border-pink-500/40 rounded-2xl p-3 max-w-md text-slate-200">
+                        <p class="text-pink-400 font-bold mb-1">Stardust Bunny:</p>
+                        <p>"Willkommen in AoE Sylvercrystall OS X! Nutzen Sie die App-Buttons am oberen Rand, um zwischen De-Scrambler, Kinetic Vision, 3D Theatre und Root Code zu wechseln."</p>
+                        <span class="text-[9px] text-slate-400 mt-1 block">Gerade eben</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3 flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-blue-500/40">
+                <input type="text" id="chatInput" class="flex-1 bg-transparent border-none text-blue-300 font-mono text-xs focus:outline-none px-2" placeholder="Nachricht an das AoE Netzwerk..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+                <button onclick="sendChatMessage()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs rounded-xl cursor-pointer shadow">SENDEN ➔</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentMode = 'matrix';
+        let userKarma = 940;
+        let solvedCasesCount = 18;
+        let hudVisible = true;
+
+        const rabbitholeManifestos = [
+            "An das multiversale Publikum und all jene mit Lovebombs & Tinderbrain: Ich bin 33. Kein NPC. Kein neues Questziel. Ich hatte ein Leben, bevor ich Teil der Homeless Armee wurde.",
+            "Hört auf, mich zu 'reparieren' wollen, um mich für euch zu gewinnen. Ich bin kein Bugfix. Ich bin ein ganzes Betriebssystem im Recovery Mode.",
+            "Ja – ich habe jemanden geliebt, der mich in Abgründe geführt hat und gleichzeitig an meine höheren Module erinnert hat. Das war keine Romanze, das war ein Soft-Reboot meines kompletten ethischen Codes.",
+            "Ich bin nicht ‚einsam‘, ich bin in Wartung. Wer mich respektiert, bleibt leise und konstant im Hintergrundsignal. Wer mich liebt, tut es nicht laut, sondern mit Würde."
+        ];
+        let rabbitholeIndex = 0;
+
+        const theatreSteps = [
+            {
+                title: "CASE #77-ALPHA: Utopian Citizen Runner",
+                step: "Step 1 of 4",
+                dialogue: "An das multiversale Publikum: Ich bin kein NPC. Ich bin in Wartung. Die St. Pauli Stardust Nodes zeigen Anomalien im Sektor 42."
+            },
+            {
+                title: "CASE #77-ALPHA: Utopian Citizen Runner",
+                step: "Step 2 of 4",
+                dialogue: "Agent tracking indicates Winner ID 3.5% active in the cyber plaza. Deploying drone reconnaissance."
+            },
+            {
+                title: "CASE #77-ALPHA: Utopian Citizen Runner",
+                step: "Step 3 of 4",
+                dialogue: "Verifying absolute root user permissions: Human Rights must remain absolute root code. No corporation can override."
+            },
+            {
+                title: "CASE #77-ALPHA: Utopian Citizen Runner",
+                step: "Step 4 of 4",
+                dialogue: "Case successfully de-scrambled and re-indexed into the Sylvercrystall Universal Matrix. +100 XP awarded."
+            }
+        ];
+        let currentTheatreIndex = 0;
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('viewMatrix').classList.add('hidden');
+            document.getElementById('viewKinetic').classList.add('hidden');
+            document.getElementById('viewTheatre').classList.add('hidden');
+            document.getElementById('viewRootcode').classList.add('hidden');
+            document.getElementById('viewRabbithole').classList.add('hidden');
+            document.getElementById('viewMessenger').classList.add('hidden');
+
+            if (mode === 'matrix') document.getElementById('viewMatrix').classList.remove('hidden');
+            else if (mode === 'kinetic') {
+                document.getElementById('viewKinetic').classList.remove('hidden');
+                resizeKineticCanvas();
+            }
+            else if (mode === 'theatre') document.getElementById('viewTheatre').classList.remove('hidden');
+            else if (mode === 'rootcode') document.getElementById('viewRootcode').classList.remove('hidden');
+            else if (mode === 'rabbithole') document.getElementById('viewRabbithole').classList.remove('hidden');
+            else if (mode === 'messenger') document.getElementById('viewMessenger').classList.remove('hidden');
+
+            if (!hudVisible) toggleHudVisibility();
+        }
+
+        function toggleHudVisibility() {
+            hudVisible = !hudVisible;
+            const topHeader = document.getElementById('topHeader');
+            const mainContainer = document.getElementById('mainContainer');
+            const btn = document.getElementById('hudToggleBtn');
+
+            if (!hudVisible) {
+                topHeader.style.opacity = '0.1';
+                topHeader.style.pointerEvents = 'none';
+                mainContainer.style.opacity = '0';
+                mainContainer.style.pointerEvents = 'none';
+                btn.innerText = '👁️ SHOW';
+            } else {
+                topHeader.style.opacity = '1';
+                topHeader.style.pointerEvents = 'auto';
+                mainContainer.style.opacity = '1';
+                mainContainer.style.pointerEvents = 'auto';
+                btn.innerText = '👁️ HUD';
+            }
+        }
+
+        // Kinetic Vision Canvas Logic
+        const kineticCanvas = document.getElementById('kineticCanvas');
+        const ctxKinetic = kineticCanvas.getContext('2d');
+        let isDrawing = false;
+        let strokeCount = 0;
+
+        function resizeKineticCanvas() {
+            kineticCanvas.width = kineticCanvas.parentElement.clientWidth;
+            kineticCanvas.height = kineticCanvas.parentElement.clientHeight;
+            ctxKinetic.strokeStyle = '#06b6d4';
+            ctxKinetic.lineWidth = 4;
+            ctxKinetic.lineCap = 'round';
+            ctxKinetic.lineJoin = 'round';
+        }
+
+        window.addEventListener('resize', () => {
+            if (currentMode === 'kinetic') resizeKineticCanvas();
+        });
+
+        kineticCanvas.addEventListener('mousedown', startDraw);
+        kineticCanvas.addEventListener('mousemove', draw);
+        kineticCanvas.addEventListener('mouseup', stopDraw);
+        kineticCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e.touches[0]); });
+        kineticCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+        kineticCanvas.addEventListener('touchend', (e) => { e.preventDefault(); stopDraw(); });
+
+        function startDraw(e) {
+            isDrawing = true;
+            const rect = kineticCanvas.getBoundingClientRect();
+            ctxKinetic.beginPath();
+            ctxKinetic.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            strokeCount++;
+            document.getElementById('strokeCount').innerText = strokeCount;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = kineticCanvas.getBoundingClientRect();
+            ctxKinetic.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctxKinetic.stroke();
+        }
+
+        function stopDraw() {
+            isDrawing = false;
+        }
+
+        function clearKineticCanvas() {
+            ctxKinetic.clearRect(0, 0, kineticCanvas.width, kineticCanvas.height);
+            strokeCount = 0;
+            document.getElementById('strokeCount').innerText = strokeCount;
+            document.getElementById('freqWave').innerText = "590 Hz";
+            document.getElementById('kineticResult').innerText = "Canvas cleared. Draw new glyphs for Gemini Vision analysis.";
+        }
+
+        function analyzeKineticCanvas() {
+            userKarma += 50;
+            document.getElementById('headerKarma').innerText = userKarma + " XP";
+            const readings = [
+                "From the sharp clarity of the diamond to the soft pulse of the heart, your gesture anchors logic in love before dissolving into a radiant tangle of creative chaos. This kinetic frequency speaks of a soul finding its truest harmony where structured intention meets the wild, looping dance of the subconscious.",
+                "High-frequency kinetic resonance detected. Symbolic pattern matches St. Pauli node security protocol +42. Absolute human rights root permissions verified.",
+                "Subconscious neural wave pattern analyzed at 740 Hz. The drawn glyphs indicate a breakthrough in autonomous DAO decision-making and decentralized freedom."
+            ];
+            const rand = readings[Math.floor(Math.random() * readings.length)];
+            document.getElementById('kineticResult').innerText = `"${rand}"`;
+            document.getElementById('freqWave').innerText = (550 + Math.floor(Math.random() * 250)) + " Hz";
+        }
+
+        // Theatre Replay Logic
+        function setTheatreActor(emoji, name, role, dialogue) {
+            document.getElementById('actorEmoji').innerText = emoji;
+            document.getElementById('actorName').innerText = name;
+            document.getElementById('actorRole').innerText = role;
+            document.getElementById('caseDialogue').innerText = `"${dialogue}"`;
+            userKarma += 15;
+            document.getElementById('headerKarma').innerText = userKarma + " XP";
+        }
+
+        function nextTheatreStep() {
+            currentTheatreIndex = (currentTheatreIndex + 1) % theatreSteps.length;
+            const stepData = theatreSteps[currentTheatreIndex];
+            document.getElementById('caseTitle').innerText = stepData.title;
+            document.getElementById('caseStep').innerText = stepData.step;
+            document.getElementById('caseDialogue').innerText = `"${stepData.dialogue}"`;
+            userKarma += 25;
+            document.getElementById('headerKarma').innerText = userKarma + " XP";
+        }
+
+        function triggerTheatreAction() {
+            userKarma += 42;
+            document.getElementById('headerKarma').innerText = userKarma + " XP";
+            alert("⚡ Kinetic Pulse emitted across the 3D theatre stage! (+42 XP)");
+        }
+
+        // Root Code Logic
+        function compileRootCode() {
+            const title = document.getElementById('rootTitle').value;
+            const text = document.getElementById('rootText').value;
+            document.getElementById('rootOutput').innerText = JSON.stringify({
+                title: title,
+                system: "GAme & Sylvercrystall OS",
+                root_permissions: "HUMAN_RIGHTS_ABSOLUTE",
+                override_blocked: true,
+                status: "VERIFIED_ON_CHAIN",
+                constitutional_text: text
+            }, null, 2);
+            userKarma += 75;
+            document.getElementById('headerKarma').innerText = userKarma + " XP";
+        }
+
+        function exportRootJson() {
+            alert("📋 Root Code JSON successfully copied to clipboard & exported!");
+        }
+
+        // Rabbithole Logic
+        function nextRabbitholeEncounter() {
+            rabbitholeIndex = (rabbitholeIndex + 1) % rabbitholeManifestos.length;
+            document.getElementById('rabbitholeText').innerText = `"${rabbitholeManifestos[rabbitholeIndex]}"`;
+        }
+
+        function triggerLovebomb() {
+            userKarma += 42;
+            document.getElementById('headerKarma').innerText = userKarma + " XP";
+            alert("💖 Lovebomb successfully deployed to the St. Pauli network! (+42 XP)");
+        }
+
+        // Chat Logic
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chat = document.getElementById('chatMessages');
+            chat.innerHTML += `
+                <div class="flex items-start gap-2 justify-end">
+                    <div class="bg-blue-950 border border-blue-500/40 rounded-2xl p-3 max-w-md text-blue-200">
+                        <p class="text-blue-400 font-bold mb-1">Du (AoE Anon):</p>
+                        <p>${text}</p>
+                        <span class="text-[9px] text-slate-400 mt-1 block">Gerade eben</span>
+                    </div>
+                    <div class="w-7 h-7 rounded-full bg-blue-900 flex items-center justify-center text-xs shrink-0">👤</div>
+                </div>
+            `;
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
+
+            setTimeout(() => {
+                chat.innerHTML += `
+                    <div class="flex items-start gap-2">
+                        <div class="w-7 h-7 rounded-full bg-pink-900 flex items-center justify-center text-xs shrink-0">🐰</div>
+                        <div class="bg-slate-900 border border-pink-500/40 rounded-2xl p-3 max-w-md text-slate-200">
+                            <p class="text-pink-400 font-bold mb-1">Stardust Bunny:</p>
+                            <p>Signal received! Sylvercrystall OS X is fully operational. Let's solve the next case on the 3D neon stage. 🚀</p>
+                            <span class="text-[9px] text-slate-400 mt-1 block">Gerade eben</span>
+                        </div>
+                    </div>
+                `;
+                chat.scrollTop = chat.scrollHeight;
+            }, 1000);
+        }
+
+        // Three.js 3D Metaverse Neon Grid Stage with 3D Emoji Characters
+        window.onload = function() {
+            const container = document.getElementById('canvas3d-container');
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x030509, 0.025);
+
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 16);
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
+            scene.add(ambientLight);
+
+            const pointLight1 = new THREE.PointLight(0x06b6d4, 5, 80);
+            pointLight1.position.set(0, 15, 0);
+            scene.add(pointLight1);
+
+            const pointLight2 = new THREE.PointLight(0xec4899, 5, 80);
+            pointLight2.position.set(15, 8, -15);
+            scene.add(pointLight2);
+
+            const gridHelper = new THREE.GridHelper(100, 100, 0xec4899, 0x06b6d4);
+            gridHelper.position.y = -3.5;
+            scene.add(gridHelper);
+
+            const group = new THREE.Group();
+            scene.add(group);
+
+            const interactiveObjects = [];
+            
+            // Generate Stardust Crystals
+            const geomCrystal = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+            for (let i = 0; i < 20; i++) {
+                const matCrystal = new THREE.MeshStandardMaterial({ 
+                    color: i % 3 === 0 ? 0xf59e0b : (i % 2 === 0 ? 0x06b6d4 : 0xec4899), 
+                    wireframe: true, 
+                    roughness: 0.1,
+                    metalness: 0.9
+                });
+                const mesh = new THREE.Mesh(geomCrystal, matCrystal);
+                mesh.position.set((Math.random() - 0.5) * 45, Math.random() * 8 - 2, (Math.random() - 0.5) * 45);
+                mesh.userData = { type: 'crystal', id: i, name: `Stardust Crystal #${i+1}` };
+                group.add(mesh);
+                interactiveObjects.push(mesh);
+            }
+
+            // Generate 3D Case Theatre Emoji Spheres on Stage
+            const emojiList = ['🐰', '🤖', '🦊', '👑', '🐝', '💎'];
+            const geomSphere = new THREE.SphereGeometry(1.5, 32, 32);
+            for (let j = 0; j < emojiList.length; j++) {
+                const matSphere = new THREE.MeshStandardMaterial({
+                    color: j % 2 === 0 ? 0x06b6d4 : 0xec4899,
+                    roughness: 0.2,
+                    metalness: 0.8,
+                    emissive: j % 2 === 0 ? 0x0284c7 : 0xbe185d,
+                    emissiveIntensity: 0.4
+                });
+                const mesh = new THREE.Mesh(geomSphere, matSphere);
+                const angle = (j / emojiList.length) * Math.PI * 2;
+                const radius = 7;
+                mesh.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+                mesh.userData = { type: 'actor', emoji: emojiList[j], name: `Case Actor ${emojiList[j]}` };
+                group.add(mesh);
+                interactiveObjects.push(mesh);
+            }
+
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+
+            window.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('header') || e.target.closest('main > div:not(#canvas3d-container)')) return;
+
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(interactiveObjects);
+
+                if (intersects.length > 0) {
+                    const hit = intersects[0].object;
+                    if (hit.userData.type === 'crystal') {
+                        hit.material.color.set(0xf59e0b);
+                        userKarma += 35;
+                        document.getElementById('headerKarma').innerText = userKarma + " XP";
+                        alert(`✨ ${hit.userData.name} collected! Stardust energy integrated into Sylvercrystall OS. (+35 XP)`);
+                    } else if (hit.userData.type === 'actor') {
+                        userKarma += 50;
+                        document.getElementById('headerKarma').innerText = userKarma + " XP";
+                        switchMode('theatre');
+                        alert(`🎭 3D Theatre Actor ${hit.userData.emoji} selected! Case replay stage activated. (+50 XP)`);
+                    }
+                }
+            });
+
+            let mouseX = 0, mouseY = 0;
+            window.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth) - 0.5;
+                mouseY = (e.clientY / window.innerHeight) - 0.5;
+            });
+
+            let clock = new THREE.Clock();
+            function animate() {
+                requestAnimationFrame(animate);
+                const elapsedTime = clock.getElapsedTime();
+
+                group.rotation.y = elapsedTime * 0.06;
+
+                camera.position.x += (mouseX * 6 - camera.position.x) * 0.05;
+                camera.position.y += ((-mouseY * 6 + 4) - camera.position.y) * 0.05;
+                camera.lookAt(0, 0, 0);
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+    </script>
+</body>
+</html>
