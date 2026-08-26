@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 360 Showroom & Memory Vault</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #03030c;
+            color: #ffffff;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(15, 15, 30, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glow-text {
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.8), 0 0 40px rgba(59, 130, 246, 0.6);
+        }
+        /* Custom scrollbar for inventory */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.6);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.9);
+        }
+        @keyframes float-pulse {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.05); }
+        }
+        .animate-float {
+            animation: float-pulse 4s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+    <div id="video-container" class="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-45 transition-opacity duration-1000">
+        <video id="bg-video" autoplay loop muted playsinline class="w-full h-full object-cover scale-105 filter blur-[2px]">
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-code-31936-large.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-t from-[#03030c] via-transparent to-[#03030c] opacity-85"></div>
+    </div>
+
+    <canvas id="webgl-canvas" class="absolute inset-0 z-10 cursor-grab active:cursor-grabbing"></canvas>
+
+    <div class="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 md:p-8">
+        
+        <!-- Top Header & Atmosphere Switchers -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-auto">
+            <div class="glass-panel px-6 py-3 rounded-2xl flex items-center space-x-3 shadow-2xl">
+                <div class="w-3 h-3 bg-cyan-400 rounded-full animate-ping"></div>
+                <h1 class="text-xl font-bold tracking-wider bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent glow-text">
+                    ASTRAL VAULT 360
+                </h1>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="glass-panel px-4 py-2 rounded-xl flex items-center space-x-2">
+                    <span class="text-xs text-purple-300 font-semibold uppercase tracking-wider">Atmosphere:</span>
+                    <button onclick="changeVideo('https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-code-31936-large.mp4')" class="px-3 py-1 rounded-lg text-xs bg-purple-600 hover:bg-purple-500 transition shadow">Matrix</button>
+                    <button onclick="changeVideo('https://assets.mixkit.co/videos/preview/mixkit-tunnel-of-glowing-neon-lights-41527-large.mp4')" class="px-3 py-1 rounded-lg text-xs bg-indigo-600 hover:bg-indigo-500 transition shadow">Neon</button>
+                    <button onclick="changeVideo('https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4')" class="px-3 py-1 rounded-lg text-xs bg-blue-600 hover:bg-blue-500 transition shadow">Cosmos</button>
+                </div>
+
+                <div class="glass-panel px-4 py-2 rounded-xl flex items-center space-x-2">
+                    <span class="text-xs text-cyan-300 font-semibold uppercase tracking-wider">Memories:</span>
+                    <span id="collected-count" class="font-bold text-cyan-400 text-lg">0</span>
+                    <span class="text-xs text-gray-400">/ <span id="total-count">10</span></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Center Crosshair & Interactive Prompt -->
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center">
+            <div id="crosshair" class="w-5 h-5 border-2 border-cyan-400/70 rounded-full transition-all duration-300 flex items-center justify-center">
+                <div class="w-1.5 h-1.5 bg-cyan-300 rounded-full animate-pulse"></div>
+            </div>
+            <div id="interaction-prompt" class="mt-4 opacity-0 transition-opacity duration-300 glass-panel px-4 py-2 rounded-xl text-xs tracking-wider text-cyan-300 font-semibold shadow-lg">
+                Click glowing crystal to collect memory 💎
+            </div>
+        </div>
+
+        <!-- Bottom Footer Instructions & Vault Button -->
+        <footer class="flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-auto">
+            <div class="glass-panel px-5 py-3 rounded-2xl max-w-md text-xs text-gray-300">
+                <p class="font-semibold text-purple-300 mb-1">Interactive Navigation:</p>
+                <p>Click & drag to explore 360° space. Scroll to zoom in/out. Collect all 10 glowing MP4 energy crystals scattered across the cosmic vault!</p>
+            </div>
+
+            <button onclick="toggleInventory()" class="glass-panel px-6 py-3 rounded-2xl hover:bg-purple-900/40 transition flex items-center space-x-3 border-purple-500/40 group shadow-xl">
+                <svg class="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                <span class="font-semibold text-sm tracking-wide">Open Memory Vault</span>
+            </button>
+        </footer>
+
+    </div>
+
+    <div id="inventory-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-5xl max-h-[88vh] rounded-3xl p-6 flex flex-col shadow-2xl border-purple-500/40">
+            <div class="flex items-center justify-between pb-4 border-b border-white/10">
+                <div>
+                    <h2 class="text-xl font-bold tracking-wide text-purple-300">Collected MP4 Memories Vault</h2>
+                    <p class="text-xs text-gray-400">Stream and relive your collected showroom holographic artifacts</p>
+                </div>
+                <button onclick="toggleInventory()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 my-6 overflow-y-auto flex-1 pr-2">
+                <!-- Video Player Preview Side -->
+                <div class="md:col-span-2 flex flex-col bg-black/50 rounded-2xl overflow-hidden border border-white/10">
+                    <div class="relative flex-1 bg-black aspect-video flex items-center justify-center">
+                        <video id="modal-video-player" controls autoplay loop class="w-full h-full object-cover">
+                            <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-code-31936-large.mp4" type="video/mp4">
+                            Your browser does not support video playback.
+                        </video>
+                    </div>
+                    <div class="p-4 bg-purple-950/40">
+                        <h3 id="active-memory-title" class="font-bold text-base text-cyan-300">Select an unlocked memory</h3>
+                        <p id="active-memory-desc" class="text-xs text-gray-300 mt-1">Explore the 360 showroom and collect glowing crystals to unlock MP4 memory streams.</p>
+                    </div>
+                </div>
+
+                <!-- Collected List Side -->
+                <div class="flex flex-col space-y-3 overflow-y-auto max-h-[420px]" id="memory-list-container">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-white/10 flex justify-between items-center text-xs text-gray-400">
+                <span>Showroom Interactive Engine v3.0</span>
+                <button onclick="toggleInventory()" class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold text-white transition shadow-lg">Resume Experience</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer;
+        let particlesMesh, backgroundStars, glowingOrbs = [];
+        let raycaster, mouse;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraRotation = { x: 0, y: 0 };
+        let targetCameraRotation = { x: 0, y: 0 };
+        let collectedMemoriesCount = 0;
+
+        // Expanded memory database with 10 interactive crystals
+        const memoryDatabase = [
+            { id: 1, title: "Quantum Genesis Matrix", url: "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-code-31936-large.mp4", collected: false, color: "#00f3ff" },
+            { id: 2, title: "Neon Cyber Tunnel", url: "https://assets.mixkit.co/videos/preview/mixkit-tunnel-of-glowing-neon-lights-41527-large.mp4", collected: false, color: "#a855f7" },
+            { id: 3, title: "Deep Space Nebula", url: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4", collected: false, color: "#3b82f6" },
+            { id: 4, title: "Cybernetic Pulse Flow", url: "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-code-31936-large.mp4", collected: false, color: "#ec4899" },
+            { id: 5, title: "Holographic Grid Grid", url: "https://assets.mixkit.co/videos/preview/mixkit-tunnel-of-glowing-neon-lights-41527-large.mp4", collected: false, color: "#10b981" },
+            { id: 6, title: "Stellar Horizon Flux", url: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4", collected: false, color: "#f59e0b" },
+            { id: 7, title: "Cyber Dimension Portal", url: "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-code-31936-large.mp4", collected: false, color: "#06b6d4" },
+            { id: 8, title: "Astral Nebula Wave", url: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-background-1610-large.mp4", collected: false, color: "#8b5cf6" },
+            { id: 9, title: "Hyperdrive Lightstream", url: "https://assets.mixkit.co/videos/preview/mixkit-tunnel-of-glowing-neon-lights-41527-large.mp4", collected: false, color: "#f43f5e" },
+            { id: 10, title: "Infinite Void Crystal", url: "https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-screens-with-code-31936-large.mp4", collected: false, color: "#eab308" }
+        ];
+
+        function init3D() {
+            const canvas = document.getElementById('webgl-canvas');
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 0, 0.1);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            document.getElementById('total-count').textContent = memoryDatabase.length;
+
+            createDenseParticleSystems();
+            createGlowingOrbNodes();
+            setupEventListeners();
+
+            animate();
+        }
+
+        // Create dense background particles and large glowing ambient particles
+        function createDenseParticleSystems() {
+            // Background Star Field
+            const starCount = 3500;
+            const starGeo = new THREE.BufferGeometry();
+            const starPos = new Float32Array(starCount * 3);
+            const starCol = new Float32Array(starCount * 3);
+
+            const palette = [
+                new THREE.Color('#00f3ff'),
+                new THREE.Color('#a855f7'),
+                new THREE.Color('#ffffff'),
+                new THREE.Color('#3b82f6'),
+                new THREE.Color('#ec4899')
+            ];
+
+            for (let i = 0; i < starCount * 3; i += 3) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 45 + Math.random() * 75;
+
+                starPos[i] = r * Math.sin(phi) * Math.cos(theta);
+                starPos[i + 1] = r * Math.sin(phi) * Math.sin(theta);
+                starPos[i + 2] = r * Math.cos(phi);
+
+                const col = palette[Math.floor(Math.random() * palette.length)];
+                starCol[i] = col.r;
+                starCol[i + 1] = col.g;
+                starCol[i + 2] = col.b;
+            }
+
+            starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+            starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+
+            const starMat = new THREE.PointsMaterial({
+                size: 0.9,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+
+            backgroundStars = new THREE.Points(starGeo, starMat);
+            scene.add(backgroundStars);
+
+            // Additional floating glowing macro-particles in the showroom
+            const macroCount = 120;
+            const macroGeo = new THREE.BufferGeometry();
+            const macroPos = new Float32Array(macroCount * 3);
+
+            for (let i = 0; i < macroCount * 3; i += 3) {
+                macroPos[i] = (Math.random() - 0.5) * 50;
+                macroPos[i + 1] = (Math.random() - 0.5) * 30;
+                macroPos[i + 2] = (Math.random() - 0.5) * 50;
+            }
+
+            macroGeo.setAttribute('position', new THREE.BufferAttribute(macroPos, 3));
+            const macroMat = new THREE.PointsMaterial({
+                size: 2.2,
+                color: 0xa855f7,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+
+            const macroParticles = new THREE.Points(macroGeo, macroMat);
+            scene.add(macroParticles);
+        }
+
+        // Create interactive big glowing memory crystals positioned in 360 space
+        function createGlowingOrbNodes() {
+            const orbGeo = new THREE.IcosahedronGeometry(1.3, 2);
+
+            memoryDatabase.forEach((mem, index) => {
+                const angle = (index / memoryDatabase.length) * Math.PI * 2;
+                const distance = 16 + (index % 3) * 3;
+                const x = Math.cos(angle) * distance;
+                const z = Math.sin(angle) * distance;
+                const y = (Math.random() - 0.5) * 10;
+
+                const material = new THREE.MeshStandardMaterial({
+                    color: mem.color,
+                    emissive: mem.color,
+                    emissiveIntensity: 0.9,
+                    roughness: 0.15,
+                    metalness: 0.9,
+                    transparent: true,
+                    opacity: 0.92
+                });
+
+                const orbMesh = new THREE.Mesh(orbGeo, material);
+                orbMesh.position.set(x, y, z);
+                orbMesh.userData = { id: mem.id, title: mem.title, url: mem.url, collected: false, initialY: y };
+
+                // Inner core glow
+                const coreGeo = new THREE.SphereGeometry(0.5, 16, 16);
+                const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+                orbMesh.add(coreMesh);
+
+                // Outer pulsing halo
+                const haloGeo = new THREE.SphereGeometry(2.0, 24, 24);
+                const haloMat = new THREE.MeshBasicMaterial({
+                    color: mem.color,
+                    transparent: true,
+                    opacity: 0.25,
+                    blending: THREE.AdditiveBlending
+                });
+                const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+                orbMesh.add(haloMesh);
+
+                scene.add(orbMesh);
+                glowingOrbs.push(orbMesh);
+            });
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0x00f3ff, 2.5, 60);
+            pointLight.position.set(0, 10, 0);
+            scene.add(pointLight);
+        }
+
+        // Setup mouse, touch, and scroll event listeners
+        function setupEventListeners() {
+            const canvas = document.getElementById('webgl-canvas');
+
+            window.addEventListener('resize', onWindowResize);
+
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                if (!isDragging) return;
+
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                targetCameraRotation.y -= deltaX * 0.003;
+                targetCameraRotation.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetCameraRotation.x - deltaY * 0.003));
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Touch events for full mobile & tablet support
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+                targetCameraRotation.y -= deltaX * 0.003;
+                targetCameraRotation.x = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, targetCameraRotation.x - deltaY * 0.003));
+
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+
+            window.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+
+            // Mouse wheel zoom / FOV adjustment
+            window.addEventListener('wheel', (e) => {
+                camera.fov = Math.max(45, Math.min(90, camera.fov + e.deltaY * 0.05));
+                camera.updateProjectionMatrix();
+            });
+
+            // Click / Tap to Collect Memory Crystal
+            canvas.addEventListener('click', () => {
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(glowingOrbs, true);
+
+                if (intersects.length > 0) {
+                    let hitObject = intersects[0].object;
+                    if (hitObject.parent && hitObject.parent.userData && hitObject.parent.userData.id) {
+                        hitObject = hitObject.parent;
+                    }
+
+                    if (hitObject.userData && !hitObject.userData.collected) {
+                        collectMemory(hitObject);
+                    }
+                }
+            });
+        }
+
+        // Collect memory crystal animation and inventory sync
+        function collectMemory(orbMesh) {
+            orbMesh.userData.collected = true;
+            collectedMemoriesCount++;
+            document.getElementById('collected-count').textContent = collectedMemoriesCount;
+
+            const memoryItem = memoryDatabase.find(m => m.id === orbMesh.userData.id);
+            if (memoryItem) {
+                memoryItem.collected = true;
+            }
+
+            // Shrink & dissolve animation
+            let scale = 1.0;
+            const shrinkInterval = setInterval(() => {
+                scale -= 0.06;
+                orbMesh.scale.set(scale, scale, scale);
+                if (scale <= 0) {
+                    clearInterval(shrinkInterval);
+                    scene.remove(orbMesh);
+                }
+            }, 20);
+
+            showNotification(`Collected Memory: ${orbMesh.userData.title} 💎`);
+
+            if (collectedMemoriesCount === memoryDatabase.length) {
+                setTimeout(() => {
+                    showNotification(`🎉 Congratulations! All ${memoryDatabase.length} memories unlocked!`);
+                }, 1500);
+            }
+        }
+
+        // Toast notification helper
+        function showNotification(text) {
+            const prompt = document.getElementById('interaction-prompt');
+            prompt.textContent = text;
+            prompt.style.opacity = '1';
+            setTimeout(() => {
+                prompt.style.opacity = '0';
+            }, 3500);
+        }
+
+        // Main animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Smooth camera lerp damping for premium feel
+            cameraRotation.x += (targetCameraRotation.x - cameraRotation.x) * 0.1;
+            cameraRotation.y += (targetCameraRotation.y - cameraRotation.y) * 0.1;
+            camera.rotation.x = cameraRotation.x;
+            camera.rotation.y = cameraRotation.y;
+
+            if (backgroundStars) {
+                backgroundStars.rotation.y += 0.0004;
+            }
+
+            // Floating crystal oscillations
+            const time = Date.now() * 0.003;
+            glowingOrbs.forEach((orb, i) => {
+                if (orb.parent) {
+                    orb.rotation.x += 0.012;
+                    orb.rotation.y += 0.018;
+                    orb.position.y = orb.userData.initialY + Math.sin(time + i * 1.5) * 0.6;
+                }
+            });
+
+            // Raycast hover detection
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(glowingOrbs, true);
+            const prompt = document.getElementById('interaction-prompt');
+            const crosshair = document.getElementById('crosshair');
+
+            if (intersects.length > 0) {
+                document.body.style.cursor = 'pointer';
+                crosshair.classList.add('scale-125', 'border-purple-400');
+                prompt.style.opacity = '1';
+                if (!prompt.textContent.includes("Collected")) {
+                    prompt.textContent = "Click glowing crystal to collect memory 💎";
+                }
+            } else {
+                document.body.style.cursor = 'grab';
+                crosshair.classList.remove('scale-125', 'border-purple-400');
+                if (prompt.textContent.includes("Click glowing crystal")) {
+                    prompt.style.opacity = '0';
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function changeVideo(videoUrl) {
+            const videoElement = document.getElementById('bg-video');
+            videoElement.src = videoUrl;
+            videoElement.play().catch(e => console.log("Video autoplay restriction:", e));
+        }
+
+        function toggleInventory() {
+            const modal = document.getElementById('inventory-modal');
+            modal.classList.toggle('hidden');
+
+            if (!modal.classList.contains('hidden')) {
+                renderMemoryList();
+            }
+        }
+
+        function renderMemoryList() {
+            const container = document.getElementById('memory-list-container');
+            container.innerHTML = '';
+
+            memoryDatabase.forEach(mem => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `p-3.5 rounded-2xl flex items-center justify-between border transition ${mem.collected ? 'bg-purple-900/30 border-purple-500/50 cursor-pointer hover:bg-purple-900/50' : 'bg-white/5 border-white/5 opacity-40 cursor-not-allowed'}`;
+                
+                itemDiv.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-inner" style="background: ${mem.color}25; color: ${mem.color};">
+                            💎
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-white">${mem.title}</h4>
+                            <p class="text-xs text-gray-400">${mem.collected ? 'Unlocked & Ready to Stream' : 'Locked in Showroom'}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-lg font-semibold ${mem.collected ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-gray-800 text-gray-500'}">
+                        ${mem.collected ? 'Play' : 'Locked'}
+                    </span>
+                `;
+
+                if (mem.collected) {
+                    itemDiv.onclick = () => {
+                        const player = document.getElementById('modal-video-player');
+                        const titleEl = document.getElementById('active-memory-title');
+                        const descEl = document.getElementById('active-memory-desc');
+
+                        player.src = mem.url;
+                        player.play();
+                        titleEl.textContent = mem.title;
+                        descEl.textContent = "Streaming collected MP4 memory artifact from your Vault.";
+                    };
+                }
+
+                container.appendChild(itemDiv);
+            });
+        }
+
+        window.onload = function() {
+            init3D();
+        };
+    </script>
+
+</body>
+</html>
