@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quantum Inspector Holo-Office // Q-OS v11.0</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        quantum: {
+                            dark: '#030712',
+                            card: '#0f172a',
+                            border: '#1e293b',
+                            cyan: '#06b6d4',
+                            neon: '#38bdf8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Orbitron', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .font-mono {
+            font-family: 'Orbitron', monospace;
+        }
+        /* Holographic Scanlines */
+        .holo-scanline::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(6, 182, 212, 0.04) 50%);
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(6, 182, 212, 0.35);
+            box-shadow: 0 0 35px rgba(6, 182, 212, 0.15);
+        }
+        .glow-text {
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.6), 0 0 25px rgba(56, 189, 248, 0.3);
+        }
+        .node-floating-tag {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 15;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(3, 7, 18, 0.8);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.5);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col relative select-none holo-scanline">
+
+    <header class="h-14 sm:h-16 border-b border-cyan-500/30 bg-quantum-dark/95 px-4 sm:px-6 flex items-center justify-between z-30 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-cyan-950/80 border border-cyan-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                <span class="text-lg">🛡️</span>
+            </div>
+            <div>
+                <h1 class="font-mono text-xs sm:text-base font-bold tracking-wider text-cyan-300 glow-text">Q-INSPECTOR // 3D UNIVERSE</h1>
+                <p class="text-[10px] text-cyan-500/80 font-mono hidden sm:block">COSMIC CONSTELLATION MESH: ONLINE</p>
+            </div>
+        </div>
+
+        <!-- Quick Action Toolbar -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <button onclick="toggleImmersiveHUD()" id="hud-toggle-btn" class="px-2.5 sm:px-3 py-1.5 rounded-lg glass-panel text-cyan-300 font-mono text-xs hover:bg-cyan-500/20 transition-all flex items-center space-x-1.5 cursor-pointer" title="Toggle HUD for 3D View">
+                <span>👁️</span>
+                <span class="hidden md:inline">TOGGLE HUD</span>
+            </button>
+            <button onclick="openEZUploadModal()" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-cyan-500/25 border border-cyan-400 text-cyan-200 font-mono text-xs hover:bg-cyan-500/40 transition-all flex items-center space-x-1.5 shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer">
+                <span>📤</span>
+                <span class="font-bold">EZ UPLOAD & SORT</span>
+            </button>
+            <button onclick="toggleAIAssistantModal()" class="px-3 py-1.5 sm:py-2 rounded-lg bg-indigo-500/20 border border-indigo-400/50 text-indigo-300 font-mono text-xs hover:bg-indigo-500/35 transition-all flex items-center space-x-1.5 cursor-pointer">
+                <span>🤖</span>
+                <span class="hidden sm:inline">AI ORACLE</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 relative flex overflow-hidden">
+        
+        <!-- Three.js Canvas Container -->
+        <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+        <!-- Floating 3D Node Cosmos Names / Tags Layer -->
+        <div id="cosmos-labels-layer" class="absolute inset-0 pointer-events-none z-15 overflow-hidden">
+            <!-- Dynamically populated floating cosmos titles -->
+        </div>
+
+        <!-- Center Reticle / Holographic Grid Overlay -->
+        <div id="hud-overlay-elements" class="absolute inset-0 pointer-events-none z-10 flex items-center justify-center transition-opacity duration-300">
+            <div class="w-[500px] h-[500px] sm:w-[700px] sm:h-[700px] rounded-full border border-cyan-500/10 absolute animate-[spin_80s_linear_infinite]"></div>
+            <div class="w-[300px] h-[300px] sm:w-[450px] sm:h-[450px] rounded-full border border-dashed border-cyan-500/15 absolute animate-[spin_50s_linear_infinite_reverse]"></div>
+            <div class="w-24 h-24 rounded-full border border-cyan-500/20 absolute flex items-center justify-center">
+                <div class="w-2 h-2 bg-cyan-400 rounded-full shadow-[0_0_15px_#06b6d4]"></div>
+            </div>
+        </div>
+
+        <aside id="filecase-drawer" class="absolute left-2 sm:left-6 top-2 sm:top-6 bottom-2 sm:bottom-6 w-72 sm:w-80 z-20 flex flex-col space-y-3 pointer-events-auto transition-all duration-300">
+            <div class="glass-panel rounded-2xl p-3.5 sm:p-4 flex flex-col h-full shadow-2xl border border-cyan-500/40">
+                <div class="flex items-center justify-between pb-2.5 border-b border-cyan-500/20 mb-2.5">
+                    <h2 class="font-mono text-xs sm:text-sm font-bold text-cyan-300 flex items-center space-x-2">
+                        <span>📁</span>
+                        <span>AUTO-SORT FILECASE</span>
+                    </h2>
+                    <span class="text-[10px] font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30" id="filecase-count"> NODES</span>
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative mb-2.5">
+                    <span class="absolute left-3 top-2.5 text-xs">🔍</span>
+                    <input type="text" id="evidence-search" oninput="filterFilecase(this.value)" placeholder="Search cosmos files & tags..." class="w-full bg-quantum-dark/90 border border-cyan-500/30 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <!-- Category Filters -->
+                <div class="grid grid-cols-5 gap-1 mb-2.5 text-center">
+                    <button onclick="setFilecaseCategory('all')" id="cat-btn-all" class="py-1 rounded-lg bg-cyan-500/25 border border-cyan-400 text-cyan-200 text-[10px] font-mono cursor-pointer">🌐 ALL</button>
+                    <button onclick="setFilecaseCategory('video')" id="cat-btn-video" class="py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-cyan-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer">🎥 VID</button>
+                    <button onclick="setFilecaseCategory('audio')" id="cat-btn-audio" class="py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-cyan-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer">🎙️ AUD</button>
+                    <button onclick="setFilecaseCategory('image')" id="cat-btn-image" class="py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-cyan-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer">🖼️ PIC</button>
+                    <button onclick="setFilecaseCategory('html')" id="cat-btn-html" class="py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-cyan-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer">🌐 HTML</button>
+                </div>
+
+                <!-- Filecase List -->
+                <div id="filecase-list" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div class="pt-2.5 border-t border-cyan-500/25 mt-2 flex items-center justify-between text-[10px] font-mono text-cyan-400/70">
+                    <span>✨ CONNECTED COSMOS</span>
+                    <span>👆 CLICK TO FOCUS</span>
+                </div>
+            </div>
+        </aside>
+
+        <div id="inspector-panel" class="absolute right-2 sm:right-6 top-2 sm:top-6 bottom-2 sm:bottom-6 w-80 sm:w-[420px] z-20 flex flex-col pointer-events-auto transform translate-x-[115%] transition-transform duration-300 ease-out">
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col h-full shadow-2xl border border-cyan-500/50 relative overflow-hidden">
+                <button onclick="closeInspector()" class="absolute top-4 right-4 p-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 cursor-pointer z-10">
+                    ❌
+                </button>
+                <div class="flex items-center space-x-3 pb-3 border-b border-cyan-500/20 mb-3 pr-8">
+                    <div id="inspector-icon" class="w-10 h-10 rounded-xl bg-cyan-950/90 border border-cyan-500/50 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0">
+                        📄
+                    </div>
+                    <div class="min-w-0">
+                        <span id="inspector-category" class="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/20">FILECASE NODE</span>
+                        <h3 id="inspector-title" class="font-mono text-xs sm:text-sm font-bold text-cyan-200 mt-0.5 truncate">Node Title</h3>
+                    </div>
+                </div>
+
+                <!-- Inspector Dynamic Content & Media Previewer -->
+                <div id="inspector-content" class="flex-1 overflow-y-auto space-y-3.5 pr-1 text-xs font-mono">
+                    <!-- Populated dynamically with rich previews -->
+                </div>
+
+                <!-- Inspector Actions -->
+                <div class="pt-3 border-t border-cyan-500/20 mt-3 flex items-center space-x-2">
+                    <button onclick="reconstructNodeAI()" class="flex-1 py-2 rounded-xl bg-cyan-500/25 border border-cyan-400 text-cyan-200 font-mono text-xs hover:bg-cyan-500/40 transition-all flex items-center justify-center space-x-2 cursor-pointer">
+                        <span>✨</span>
+                        <span>AI QUANTUM DEEP SCAN</span>
+                    </button>
+                    <button onclick="toggleNodePin()" id="pin-btn" class="px-3.5 py-2 rounded-xl bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-mono text-xs hover:bg-cyan-900 cursor-pointer" title="Pin Node">
+                        📌
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="ez-upload-modal" class="fixed inset-0 z-50 bg-quantum-dark/85 backdrop-blur-md flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 w-full max-w-md border border-cyan-500/55 shadow-2xl relative">
+            <div class="flex items-center justify-between pb-3 border-b border-cyan-500/20 mb-4">
+                <h3 class="font-mono text-sm font-bold text-cyan-300 flex items-center space-x-2">
+                    <span>📤</span>
+                    <span>EZ UPLOAD & AUTO-CLASSIFY</span>
+                </h3>
+                <button onclick="closeEZUploadModal()" class="p-1 rounded-lg hover:bg-cyan-500/20 text-cyan-300 cursor-pointer">❌</button>
+            </div>
+
+            <!-- Drag & Drop Box -->
+            <div onclick="document.getElementById('file-input-hidden').click()" class="border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 bg-cyan-950/20 rounded-2xl p-6 text-center cursor-pointer transition-all mb-4 group">
+                <input type="file" id="file-input-hidden" onchange="handleFileSelected(event)" class="hidden" accept="image/*,video/*,audio/*,.html,.htm,.txt,.json">
+                <div class="text-3xl mb-2 group-hover:scale-110 transition-transform">🌌</div>
+                <p class="font-mono text-xs font-bold text-cyan-200">DROP MEDIA, IMAGES, VIDEOS, OR HTML</p>
+                <p class="text-[10px] font-mono text-cyan-400/70 mt-1">Instant auto-classification, cosmos color-coding & constellation linking.</p>
+            </div>
+
+            <!-- Manual Form Override -->
+            <form onsubmit="submitUploadedFile(event)" class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-cyan-400 mb-1 text-[10px]">EVIDENCE TITLE</label>
+                    <input type="text" id="upload-title" required placeholder="e.g., Mainframe Breach Snapshot" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-cyan-400 mb-1 text-[10px]">MEDIA TYPE</label>
+                        <select id="upload-type" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-2.5 py-2 text-cyan-200 focus:outline-none focus:border-cyan-400">
+                            <option value="video">🎥 Video Stream</option>
+                            <option value="audio">🎙️ Audio Voice</option>
+                            <option value="image">🖼️ Picture / Scan</option>
+                            <option value="html">🌐 HTML / UI Code</option>
+                            <option value="doc">📄 Document</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-cyan-400 mb-1 text-[10px]">TAGS (#)</label>
+                        <input type="text" id="upload-tags" value="#quantum #classified" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-200 focus:outline-none focus:border-cyan-400">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-cyan-400 mb-1 text-[10px]">PREVIEW URL OR CONTENT / SNIPPET</label>
+                    <input type="text" id="upload-url" placeholder="https://... or HTML snippet" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400">
+                </div>
+                <div>
+                    <label class="block text-cyan-400 mb-1 text-[10px]">CASE NOTES</label>
+                    <textarea id="upload-desc" rows="2" required placeholder="Auto-analyzed case notes..." class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeEZUploadModal()" class="px-4 py-2 rounded-xl bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-900 cursor-pointer">CANCEL</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-cyan-500/30 border border-cyan-400 text-cyan-200 hover:bg-cyan-500/50 cursor-pointer font-bold">✨ INGEST TO COSMOS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="ai-assistant-modal" class="fixed inset-0 z-50 bg-quantum-dark/85 backdrop-blur-md flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-2xl w-full max-w-xl h-[520px] border border-indigo-500/50 shadow-2xl flex flex-col relative overflow-hidden">
+            <div class="flex items-center justify-between p-3.5 sm:p-4 border-b border-indigo-500/30 bg-indigo-950/40">
+                <h3 class="font-mono text-xs sm:text-sm font-bold text-indigo-300 flex items-center space-x-2">
+                    <span>🤖</span>
+                    <span>GEMINI QUANTUM ORACLE & COSMOS ASSISTANT</span>
+                </h3>
+                <button onclick="toggleAIAssistantModal()" class="p-1.5 rounded-lg hover:bg-indigo-500/20 text-indigo-400 cursor-pointer">❌</button>
+            </div>
+            <div id="ai-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-xs">
+                <div class="p-3 rounded-xl bg-indigo-950/50 border border-indigo-500/30 text-indigo-200">
+                    <p class="font-bold text-indigo-300 mb-1">🤖 ORACLE v5.0:</p>
+                    <p>Greetings, Quantum Inspector. All evidence nodes are floating in the 3D cosmos with glowing neon constellation connections. Ask me to cross-reference tags or simulate timelines.</p>
+                </div>
+            </div>
+            <div class="p-3.5 sm:p-4 border-t border-indigo-500/30 bg-indigo-950/20 flex space-x-2">
+                <input type="text" id="ai-chat-input" onkeydown="if(event.key==='Enter') sendAIChat()" placeholder="Ask Oracle about cosmos links, tags, or evidence..." class="flex-1 bg-quantum-dark border border-indigo-500/30 rounded-xl px-3.5 py-2 text-indigo-200 placeholder-indigo-500/40 focus:outline-none focus:border-indigo-400 font-mono text-xs">
+                <button onclick="sendAIChat()" class="px-4 py-2 rounded-xl bg-indigo-500/30 border border-indigo-400 text-indigo-200 font-mono text-xs hover:bg-indigo-500/50 cursor-pointer">
+                    🚀 SEND
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 glass-panel border border-cyan-400/60 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-32 transition-transform duration-300">
+        <span class="text-lg">✨</span>
+        <span id="toast-msg" class="font-mono text-xs text-cyan-200">System updated.</span>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Initial Cosmos Evidence Database with rich media types (video, audio, image, html)
+        let filecaseData = [
+            { 
+                id: 1, 
+                title: "Surveillance Feed: Sector 7 Vault", 
+                type: "video", 
+                url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", 
+                tags: "#surveillance #sec7 #vault", 
+                date: "2088-11-04 12:15", 
+                desc: "Encrypted holovid capture showing rapid phase-shifting anomaly near vault entrance.", 
+                color: 0x06b6d4, 
+                pos: {x: 2.8, y: 1.1, z: 0.2} 
+            },
+            { 
+                id: 2, 
+                title: "Voice Log #89: Dr. Kaelen", 
+                type: "audio", 
+                url: "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg", 
+                tags: "#audio #kaelen #chronal", 
+                date: "2088-11-04 13:40", 
+                desc: "Panic voice log regarding chronal degradation and missing encryption keys.", 
+                color: 0xa855f7, 
+                pos: {x: -2.8, y: 1.5, z: 1.1} 
+            },
+            { 
+                id: 3, 
+                title: "Matrix Terminal UI (HTML Sandbox)", 
+                type: "html", 
+                content: "<div style='background:linear-gradient(135deg,#0f172a,#1e293b);color:#38bdf8;padding:20px;font-family:monospace;border-radius:12px;border:1px solid #06b6d4;'><h3 style='margin:0 0 10px 0;font-size:16px;'>🌐 QUANTUM CORE INTERFACE</h3><p style='font-size:12px;opacity:0.8;'>Status: ACTIVE // Security Level 5 Verified</p><button onclick='alert(\"Terminal Diagnostic Triggered Successfully!\")' style='background:#06b6d4;color:#030712;border:none;padding:8px 16px;border-radius:6px;font-weight:bold;cursor:pointer;margin-top:10px;'>Run Diagnostics</button></div>", 
+                tags: "#html #ui #terminal", 
+                date: "2088-11-04 14:00", 
+                desc: "Interactive HTML quantum terminal snapshot recovered from mainframe memory.", 
+                color: 0x38bdf8, 
+                pos: {x: 0, y: 2.8, z: -1.8} 
+            },
+            { 
+                id: 4, 
+                title: "Optical Scan: Vault Door Mechanism", 
+                type: "image", 
+                url: "https://placehold.co/600x400/0f172a/06b6d4?text=Vault+Mechanism+Scan", 
+                tags: "#image #vault #evidence", 
+                date: "2088-11-04 14:10", 
+                desc: "High-resolution optical scan of the quantum vault locking mechanism post-breach.", 
+                color: 0x10b981, 
+                pos: {x: 1.9, y: -1.8, z: 2.0} 
+            },
+            { 
+                id: 5, 
+                title: "Corridor Hologram Replay", 
+                type: "video", 
+                url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4", 
+                tags: "#video #corridor #breach", 
+                date: "2088-11-04 14:22", 
+                desc: "Security camera showing unauthorized breach of resonance chamber.", 
+                color: 0x06b6d4, 
+                pos: {x: -2.2, y: -1.4, z: -1.2} 
+            },
+            { 
+                id: 6, 
+                title: "Sub-Harmonic Audio Trace", 
+                type: "audio", 
+                url: "https://actions.google.com/sounds/v1/science_fiction/teleport.ogg", 
+                tags: "#audio #frequency #rupture", 
+                date: "2088-11-04 14:25", 
+                desc: "Low frequency hum detected right before chronal rupture event.", 
+                color: 0xa855f7, 
+                pos: {x: 1.5, y: 2.2, z: 1.8} 
+            }
+        ];
+
+        let currentCategory = 'all';
+        let selectedNodeId = null;
+        let hudVisible = true;
+
+        // Immersive HUD Toggle
+        function toggleImmersiveHUD() {
+            hudVisible = !hudVisible;
+            const drawer = document.getElementById('filecase-drawer');
+            const overlay = document.getElementById('hud-overlay-elements');
+            const toggleBtn = document.getElementById('hud-toggle-btn');
+            
+            if (hudVisible) {
+                drawer.classList.remove('opacity-0', 'pointer-events-none', '-translate-x-full');
+                overlay.classList.remove('opacity-0');
+                toggleBtn.innerHTML = '<span>👁️</span><span class="hidden md:inline">TOGGLE HUD</span>';
+                showToast("HUD overlays restored.");
+            } else {
+                drawer.classList.add('opacity-0', 'pointer-events-none', '-translate-x-full');
+                overlay.classList.add('opacity-0');
+                toggleBtn.innerHTML = '<span>🌐</span><span class="hidden md:inline">RESTORE HUD</span>';
+                showToast("Immersive 3D Universe Active. Tap 'Restore HUD' anytime.");
+            }
+        }
+
+        // Three.js 3D Spherical Cosmos Setup with Constellations
+        let scene, camera, renderer, nodeMeshes = [], constellationLines, centralCore, raycaster, mouse;
+        let isDragging = false;
+        let prevMousePos = { x: 0, y: 0 };
+        let camRot = { x: 0, y: 0 };
+        let targetCamRot = { x: 0, y: 0 };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x030712, 0.025);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 6.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Lighting
+            const ambient = new THREE.AmbientLight(0x06b6d4, 0.9);
+            scene.add(ambient);
+
+            const pointLight = new THREE.PointLight(0x38bdf8, 3.0, 40);
+            pointLight.position.set(0, 0, 0);
+            scene.add(pointLight);
+
+            // Central Quantum Core
+            const coreGeo = new THREE.IcosahedronGeometry(1.2, 2);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.3 });
+            centralCore = new THREE.Mesh(coreGeo, coreMat);
+            scene.add(centralCore);
+
+            const innerGeo = new THREE.SphereGeometry(0.7, 32, 32);
+            const innerMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.5 });
+            scene.add(new THREE.Mesh(innerGeo, innerMat));
+
+            // Starry Cosmos Dust
+            const pGeo = new THREE.BufferGeometry();
+            const pPos = new Float32Array(400 * 3);
+            for(let i = 0; i < 400 * 3; i += 3) {
+                pPos[i] = (Math.random() - 0.5) * 30;
+                pPos[i+1] = (Math.random() - 0.5) * 30;
+                pPos[i+2] = (Math.random() - 0.5) * 30;
+            }
+            pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.04, transparent: true, opacity: 0.7 })));
+
+            build3DNodes();
+
+            // Event Listeners
+            window.addEventListener('resize', onResize);
+            container.addEventListener('mousedown', (e) => { isDragging = true; prevMousePos = { x: e.clientX, y: e.clientY }; });
+            container.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                targetCamRot.y += (e.clientX - prevMousePos.x) * 0.005;
+                targetCamRot.x += (e.clientY - prevMousePos.y) * 0.005;
+                targetCamRot.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, targetCamRot.x));
+                prevMousePos = { x: e.clientX, y: e.clientY };
+            });
+            container.addEventListener('mouseup', () => { isDragging = false; });
+            container.addEventListener('click', onCanvasClick);
+
+            // Touch events for mobile
+            container.addEventListener('touchstart', (e) => {
+                if(e.touches.length === 1) { isDragging = true; prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }
+            });
+            container.addEventListener('touchmove', (e) => {
+                if(!isDragging || e.touches.length !== 1) return;
+                targetCamRot.y += (e.touches[0].clientX - prevMousePos.x) * 0.006;
+                targetCamRot.x += (e.touches[0].clientY - prevMousePos.y) * 0.006;
+                targetCamRot.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, targetCamRot.x));
+                prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+            container.addEventListener('touchend', () => { isDragging = false; });
+
+            animate();
+        }
+
+        // Build 3D Nodes and Neon Constellation Network
+        function build3DNodes() {
+            // Remove old node meshes
+            nodeMeshes.forEach(m => scene.remove(m));
+            nodeMeshes = [];
+
+            if (constellationLines) scene.remove(constellationLines);
+
+            const linePositions = [];
+            const lineColors = [];
+
+            filecaseData.forEach((item, idx) => {
+                const matches = currentCategory === 'all' || item.type === currentCategory;
+                const group = new THREE.Group();
+                group.userData = { id: item.id };
+
+                // Geometry based on type
+                let geo = item.type === 'video' ? new THREE.OctahedronGeometry(0.32) :
+                          item.type === 'audio' ? new THREE.TetrahedronGeometry(0.32) :
+                          item.type === 'image' ? new THREE.BoxGeometry(0.35, 0.28, 0.08) :
+                          item.type === 'html' ? new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16) :
+                          new THREE.SphereGeometry(0.25, 16, 16);
+
+                const mat = new THREE.MeshStandardMaterial({
+                    color: item.color,
+                    emissive: item.color,
+                    emissiveIntensity: 0.8,
+                    wireframe: item.type === 'html',
+                    transparent: true,
+                    opacity: matches ? 0.95 : 0.2
+                });
+                
+                const mesh = new THREE.Mesh(geo, mat);
+                group.add(mesh);
+
+                // Add glowing outer wireframe shell for neon cosmic look
+                const shellGeo = geo.clone();
+                const shellMat = new THREE.MeshBasicMaterial({ color: item.color, wireframe: true, transparent: true, opacity: 0.35 });
+                const shell = new THREE.Mesh(shellGeo, shellMat);
+                shell.scale.set(1.3, 1.3, 1.3);
+                group.add(shell);
+
+                group.position.set(item.pos.x, item.pos.y, item.pos.z);
+                scene.add(group);
+                nodeMeshes.push(group);
+
+                // Connect with subsequent node for constellation effect
+                if (idx < filecaseData.length - 1) {
+                    const next = filecaseData[idx + 1];
+                    linePositions.push(item.pos.x, item.pos.y, item.pos.z);
+                    linePositions.push(next.pos.x, next.pos.y, next.pos.z);
+                    
+                    const c = new THREE.Color(item.color);
+                    lineColors.push(c.r, c.g, c.b);
+                    lineColors.push(c.r, c.g, c.b);
+                }
+            });
+
+            // Create Glowing Constellation Lines Mesh
+            if (linePositions.length > 0) {
+                const lineGeo = new THREE.BufferGeometry();
+                lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+                lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+                
+                const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.45, linewidth: 2 });
+                const lines = new THREE.LineSegments(lineGeo, lineMat);
+                scene.add(lines);
+                constellationLines = lines;
+            }
+
+            renderCosmosLabels();
+        }
+
+        // Render 2D Projected Floating Cosmos Labels (Names over 3D nodes)
+        function renderCosmosLabels() {
+            const layer = document.getElementById('cosmos-labels-layer');
+            layer.innerHTML = filecaseData.map(item => `
+                <div id="node-label-${item.id}" onclick="selectFilecaseNode(${item.id})" class="node-floating-tag px-2.5 py-1 rounded-lg glass-panel border border-cyan-400/40 text-[10px] font-mono text-cyan-200 cursor-pointer hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(6,182,212,0.3)] flex items-center space-x-1.5 transition-all">
+                    <span>${item.type === 'video' ? '🎥' : item.type === 'audio' ? '🎙️' : item.type === 'image' ? '🖼️' : item.type === 'html' ? '🌐' : '📄'}</span>
+                    <span class="font-bold truncate max-w-[120px]">${item.title}</span>
+                </div>
+            `).join('');
+        }
+
+        // Update Floating Labels Positions in Animation Loop
+        function updateCosmosLabels() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            nodeMeshes.forEach((group, idx) => {
+                const item = filecaseData[idx];
+                const label = document.getElementById(`node-label-${item.id}`);
+                if (!label) return;
+
+                const pos = group.position.clone();
+                pos.project(camera);
+
+                // Check if in front of camera
+                if (pos.z < 1) {
+                    const x = (pos.x *  0.5 + 0.5) * width;
+                    const y = (-(pos.y * 0.5) + 0.5) * height;
+                    label.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                    label.style.opacity = (currentCategory === 'all' || item.type === currentCategory) ? '1' : '0.2';
+                } else {
+                    label.style.opacity = '0';
+                }
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            camRot.x += (targetCamRot.x - camRot.x) * 0.08;
+            camRot.y += (targetCamRot.y - camRot.y) * 0.08;
+
+            if (centralCore) {
+                centralCore.rotation.y += 0.003;
+                centralCore.rotation.x += 0.001;
+            }
+
+            nodeMeshes.forEach((g, idx) => {
+                g.rotation.y += 0.012;
+                g.position.y += Math.sin(Date.now() * 0.002 + idx) * 0.0012;
+            });
+
+            const r = 6.8;
+            camera.position.x = r * Math.sin(camRot.y) * Math.cos(camRot.x);
+            camera.position.y = r * Math.sin(camRot.x);
+            camera.position.z = r * Math.cos(camRot.y) * Math.cos(camRot.x);
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+            updateCosmosLabels();
+        }
+
+        function onResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function onCanvasClick(e) {
+            const container = document.getElementById('canvas-container');
+            const rect = container.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            for(let hit of intersects) {
+                let obj = hit.object;
+                while(obj.parent && !obj.userData.id) obj = obj.parent;
+                if (obj.userData && obj.userData.id) {
+                    selectFilecaseNode(obj.userData.id);
+                    break;
+                }
+            }
+        }
+
+        // Render Filecase Drawer List
+        function renderFilecaseList() {
+            const listEl = document.getElementById('filecase-list');
+            const query = document.getElementById('evidence-search').value.toLowerCase();
+
+            const filtered = filecaseData.filter(item => {
+                const matchCat = currentCategory === 'all' || item.type === currentCategory;
+                const matchQuery = item.title.toLowerCase().includes(query) || item.tags.toLowerCase().includes(query);
+                return matchCat && matchQuery;
+            });
+
+            document.getElementById('filecase-count').innerText = `${filtered.length} NODES`;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-6 text-cyan-500/50 font-mono text-xs">No matching cosmos files found.</div>`;
+                return;
+            }
+
+            const icons = { video: '🎥', audio: '🎙️', image: '🖼️', html: '🌐', doc: '📄' };
+
+            listEl.innerHTML = filtered.map(item => `
+                <div onclick="selectFilecaseNode(${item.id})" class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-center space-x-2.5 ${selectedNodeId === item.id ? 'bg-cyan-500/25 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]' : 'bg-quantum-dark/70 border-cyan-500/20 hover:border-cyan-500/40 hover:bg-cyan-950/40'}">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center shrink-0 text-sm">
+                        ${icons[item.type] || '📄'}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-mono text-xs font-bold text-cyan-200 truncate">${item.title}</h4>
+                        <div class="flex items-center space-x-2 text-[10px] text-cyan-400/70 font-mono">
+                            <span>📅 ${item.date.substring(5, 16)}</span>
+                            <span class="text-cyan-300 truncate">${item.tags.split(' ')[0]}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setFilecaseCategory(cat) {
+            currentCategory = cat;
+            ['all', 'video', 'audio', 'image', 'html'].forEach(c => {
+                const btn = document.getElementById(`cat-btn-${c}`);
+                if(btn) {
+                    if(c === cat) {
+                        btn.className = "py-1 rounded-lg bg-cyan-500/25 border border-cyan-400 text-cyan-200 text-[10px] font-mono cursor-pointer";
+                    } else {
+                        btn.className = "py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-cyan-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer";
+                    }
+                }
+            });
+            renderFilecaseList();
+            build3DNodes();
+        }
+
+        function filterFilecase(val) {
+            renderFilecaseList();
+        }
+
+        // Select and Inspect Node with Rich Previews (Video, Image, HTML Sandbox, 3D Audio Visualizer)
+        function selectFilecaseNode(id) {
+            selectedNodeId = id;
+            const item = filecaseData.find(e => e.id === id);
+            if(!item) return;
+
+            renderFilecaseList();
+
+            const panel = document.getElementById('inspector-panel');
+            panel.classList.remove('translate-x-[115%]');
+
+            document.getElementById('inspector-title').innerText = item.title;
+            document.getElementById('inspector-category').innerText = `${item.type.toUpperCase()} // ${item.tags}`;
+            
+            const icons = { video: '🎥', audio: '🎙️', image: '🖼️', html: '🌐', doc: '📄' };
+            document.getElementById('inspector-icon').innerText = icons[item.type] || '📄';
+
+            const contentEl = document.getElementById('inspector-content');
+            
+            let previewMarkup = '';
+            if (item.type === 'video') {
+                previewMarkup = `
+                    <div class="rounded-xl overflow-hidden border border-cyan-500/40 bg-black aspect-video relative flex items-center justify-center">
+                        <video src="${item.url}" controls autoplay muted loop class="w-full h-full object-cover"></video>
+                    </div>`;
+            } else if (item.type === 'image') {
+                previewMarkup = `
+                    <div class="rounded-xl overflow-hidden border border-cyan-500/40 bg-quantum-dark aspect-video relative flex items-center justify-center">
+                        <img src="${item.url}" alt="${item.title}" class="w-full h-full object-cover">
+                    </div>`;
+            } else if (item.type === 'html') {
+                previewMarkup = `
+                    <div class="rounded-xl overflow-hidden border border-cyan-500/40 bg-quantum-dark p-3 space-y-2">
+                        <span class="text-[10px] text-cyan-400 font-mono">LIVE HTML SANDBOX PREVIEW</span>
+                        <div class="bg-black/60 p-3 rounded-lg border border-cyan-500/20">${item.content}</div>
+                    </div>`;
+            } else if (item.type === 'audio') {
+                previewMarkup = `
+                    <div class="rounded-xl border border-purple-500/40 bg-purple-950/20 p-3 space-y-2">
+                        <span class="text-[10px] text-purple-300 font-mono">3D AUDIO WAVEFORM VISUALIZER</span>
+                        <div class="h-20 bg-quantum-dark rounded-lg border border-purple-500/30 relative flex items-center justify-center overflow-hidden">
+                            <canvas id="audio-wave-canvas" class="w-full h-full"></canvas>
+                        </div>
+                        <audio src="${item.url}" controls class="w-full mt-2" onplay="startAudioWaveVisualizer()"></audio>
+                    </div>`;
+            }
+
+            contentEl.innerHTML = `
+                ${previewMarkup}
+                <div class="p-3 rounded-xl bg-quantum-dark border border-cyan-500/30 space-y-1">
+                    <span class="text-[10px] text-cyan-400">TIMESTAMP</span>
+                    <p class="text-cyan-200">${item.date}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-quantum-dark border border-cyan-500/30 space-y-1">
+                    <span class="text-[10px] text-cyan-400">CONSTELLATION TAGS</span>
+                    <p class="text-cyan-300">${item.tags}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-quantum-dark border border-cyan-500/30 space-y-1">
+                    <span class="text-[10px] text-cyan-400">CASE FILE NOTES</span>
+                    <p class="text-cyan-200 leading-relaxed text-[11px]">${item.desc}</p>
+                </div>
+            `;
+
+            if (item.type === 'audio') {
+                setTimeout(initAudioWaveCanvas, 100);
+            }
+        }
+
+        function closeInspector() {
+            document.getElementById('inspector-panel').classList.add('translate-x-[115%]');
+            selectedNodeId = null;
+            renderFilecaseList();
+        }
+
+        // Canvas Audio Wave Visualizer Animation
+        let waveAnimId = null;
+        function initAudioWaveCanvas() {
+            const canvas = document.getElementById('audio-wave-canvas');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+
+            let step = 0;
+            function drawWave() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = '#a855f7';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                const sliceWidth = canvas.width / 40;
+                let x = 0;
+                for (let i = 0; i < 40; i++) {
+                    const v = Math.sin(i * 0.4 + step) * 15 + Math.random() * 8;
+                    const y = (canvas.height / 2) + v;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.stroke();
+                step += 0.1;
+                waveAnimId = requestAnimationFrame(drawWave);
+            }
+            drawWave();
+        }
+
+        function startAudioWaveVisualizer() {
+            showToast("🎙️ Audio playback active - 3D Wave Visualizer pulsing.");
+        }
+
+        function toggleNodePin() {
+            showToast("📌 Node pinned to permanent cosmos anchor.");
+        }
+
+        // EZ Upload & Auto-Classification
+        function openEZUploadModal() {
+            document.getElementById('ez-upload-modal').classList.remove('hidden');
+        }
+
+        function closeEZUploadModal() {
+            document.getElementById('ez-upload-modal').classList.add('hidden');
+        }
+
+        function handleFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const name = file.name;
+            const ext = name.split('.').pop().toLowerCase();
+            
+            let type = 'doc';
+            let color = 0x3b82f6;
+            if (['mp4', 'mov', 'webm', 'avi'].includes(ext)) { type = 'video'; color = 0x06b6d4; }
+            else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) { type = 'audio'; color = 0xa855f7; }
+            else if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) { type = 'image'; color = 0x10b981; }
+            else if (['html', 'htm'].includes(ext)) { type = 'html'; color = 0x38bdf8; }
+
+            const autoTags = `#${type} #${ext} #cosmos #${name.split('.')[0].substring(0, 8).toLowerCase()}`;
+            const mockUrl = type === 'image' ? URL.createObjectURL(file) : type === 'video' ? URL.createObjectURL(file) : 'https://placehold.co/600x400/0f172a/06b6d4?text=' + encodeURIComponent(name);
+
+            document.getElementById('upload-title').value = name;
+            document.getElementById('upload-type').value = type;
+            document.getElementById('upload-tags').value = autoTags;
+            document.getElementById('upload-url').value = mockUrl;
+            document.getElementById('upload-desc').value = `Auto-classified ${type.toUpperCase()} evidence item ingested into quantum cosmos. Size: ${(file.size / 1024).toFixed(1)} KB.`;
+            
+            showToast(`✨ Auto-classified as ${type.toUpperCase()} with neon color matrix!`);
+        }
+
+        function submitUploadedFile(e) {
+            e.preventDefault();
+            const title = document.getElementById('upload-title').value;
+            const type = document.getElementById('upload-type').value;
+            const tags = document.getElementById('upload-tags').value;
+            const url = document.getElementById('upload-url').value || 'https://placehold.co/600x400/0f172a/06b6d4?text=Cosmos+Node';
+            const desc = document.getElementById('upload-desc').value;
+
+            const colors = { video: 0x06b6d4, audio: 0xa855f7, image: 0x10b981, html: 0x38bdf8, doc: 0x3b82f6 };
+
+            const newItem = {
+                id: filecaseData.length + 1,
+                title,
+                type,
+                url,
+                content: type === 'html' ? `<div style='padding:15px;color:#38bdf8;background:#030712;border-radius:8px;'><h4>${title}</h4><p>${desc}</p></div>` : undefined,
+                tags: tags.startsWith('#') ? tags : '#' + tags.replace(/,/g, ' #'),
+                date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                desc,
+                color: colors[type] || 0x06b6d4,
+                pos: {
+                    x: (Math.random() - 0.5) * 5.0,
+                    y: (Math.random() - 0.5) * 5.0,
+                    z: (Math.random() - 0.5) * 5.0
+                }
+            };
+
+            filecaseData.push(newItem);
+            renderFilecaseList();
+            build3DNodes();
+            closeEZUploadModal();
+            showToast("🌌 File successfully integrated into 3D cosmos & constellations!");
+            e.target.reset();
+        }
+
+        // AI Oracle Assistant
+        function toggleAIAssistantModal() {
+            document.getElementById('ai-assistant-modal').classList.toggle('hidden');
+        }
+
+        async function sendAIChat() {
+            const input = document.getElementById('ai-chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const chat = document.getElementById('ai-chat-messages');
+            chat.innerHTML += `<div class="p-2.5 rounded-xl bg-cyan-950/50 border border-cyan-500/30 text-cyan-200 ml-6">👤 INSPECTOR: ${msg}</div>`;
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
+
+            setTimeout(() => {
+                chat.innerHTML += `<div class="p-2.5 rounded-xl bg-indigo-950/50 border border-indigo-500/30 text-indigo-300 mr-6">🤖 ORACLE: Analyzed all ${filecaseData.length} cosmos nodes. Constellation links and auto-classified media streams are fully stable.</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }, 800);
+        }
+
+        function reconstructNodeAI() {
+            if (!selectedNodeId) return;
+            const item = filecaseData.find(e => e.id === selectedNodeId);
+            showToast("✨ Gemini Quantum Deep Scan completed for " + item.title);
+            item.desc += " [AI DEEP SCAN VERIFIED]";
+            selectFilecaseNode(selectedNodeId);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.remove('translate-y-32');
+            setTimeout(() => t.classList.add('translate-y-32'), 3200);
+        }
+
+        window.onload = function() {
+            initThreeJS();
+            renderFilecaseList();
+        };
+    </script>
+</body>
+</html>
