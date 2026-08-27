@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quantum Inspector Holo-Office // Q-OS v13.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        quantum: {
+                            dark: '#030712',
+                            card: '#0f172a',
+                            border: '#1e293b',
+                            cyan: '#06b6d4',
+                            neon: '#38bdf8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Orbitron', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .font-mono {
+            font-family: 'Orbitron', monospace;
+        }
+        .holo-scanline::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(6, 182, 212, 0.04) 50%);
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.94);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            box-shadow: 0 0 40px rgba(6, 182, 212, 0.2);
+        }
+        .glow-text {
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.7), 0 0 25px rgba(56, 189, 248, 0.4);
+        }
+        .node-floating-tag {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 15;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(3, 7, 18, 0.8);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.5);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col relative select-none holo-scanline">
+
+    <header class="h-14 sm:h-16 border-b border-cyan-500/30 bg-quantum-dark/95 px-3 sm:px-6 flex items-center justify-between z-30 shrink-0">
+        <div class="flex items-center space-x-2 sm:space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-cyan-950/80 border border-cyan-500/50 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                <span class="text-lg">🛡️</span>
+            </div>
+            <div>
+                <h1 class="font-mono text-xs sm:text-base font-bold tracking-wider text-cyan-300 glow-text">Q-INSPECTOR // v13.0</h1>
+                <p class="text-[10px] text-cyan-500/80 font-mono hidden sm:block">MULTI-CASE 3D COSMOS & HOLO TABLE: ONLINE</p>
+            </div>
+        </div>
+
+        <!-- Quick Action Toolbar -->
+        <div class="flex items-center space-x-1.5 sm:space-x-2.5">
+            <button onclick="toggleMobileHUD()" id="terminal-toggle-btn" class="px-2.5 py-1.5 rounded-lg bg-cyan-500/25 border border-cyan-400 text-cyan-200 font-mono text-xs hover:bg-cyan-500/40 transition-all flex items-center space-x-1 cursor-pointer">
+                <span>🖥️</span>
+                <span class="hidden md:inline font-bold">TERMINAL</span>
+            </button>
+            <button onclick="toggleExplorerMode()" id="explorer-mode-btn" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-mono text-xs hover:bg-emerald-500/35 transition-all flex items-center space-x-1 cursor-pointer">
+                <span>🧭</span>
+                <span class="hidden md:inline">EXPLORER</span>
+            </button>
+            <button onclick="toggleHoloTableView()" id="holotable-btn" class="px-2.5 py-1.5 rounded-lg bg-purple-500/20 border border-purple-400/50 text-purple-300 font-mono text-xs hover:bg-purple-500/35 transition-all flex items-center space-x-1 cursor-pointer">
+                <span>🗺️</span>
+                <span class="hidden md:inline">HOLO MAP</span>
+            </button>
+            <button onclick="toggleAudioSystem()" id="audio-toggle-btn" class="px-2.5 py-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono text-xs hover:bg-cyan-900 transition-all flex items-center space-x-1 cursor-pointer" title="Toggle Ambient Music">
+                <span>🎵</span>
+                <span id="audio-status" class="hidden lg:inline">ON</span>
+            </button>
+            <button onclick="openSettingsModal()" class="p-2 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-900 cursor-pointer" title="Settings">
+                <span>⚙️</span>
+            </button>
+            <button onclick="downloadOfficeHTML()" class="px-3 py-1.5 rounded-lg bg-cyan-500/30 border border-cyan-400 text-cyan-200 font-mono text-xs hover:bg-cyan-500/50 transition-all hidden sm:flex items-center space-x-1 cursor-pointer">
+                <span>💾</span>
+                <span>EXPORT</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 relative flex overflow-hidden">
+        
+        <!-- Three.js Canvas Container -->
+        <div id="canvas-container" class="absolute inset-0 z-0"></div>
+
+        <!-- Floating 3D Node Names / Billboard Tags Layer -->
+        <div id="cosmos-labels-layer" class="absolute inset-0 pointer-events-none z-15 overflow-hidden"></div>
+
+        <!-- Virtual Joystick for Explorer Mode (Hidden by default) -->
+        <div id="explorer-joystick-container" class="absolute bottom-6 left-6 z-20 hidden items-center space-x-3 glass-panel p-3 rounded-2xl border border-emerald-500/50 pointer-events-auto">
+            <div class="grid grid-cols-3 gap-1 w-28 h-28">
+                <div></div>
+                <button onmousedown="startMove('forward')" onmouseup="stopMove()" ontouchstart="startMove('forward')" ontouchend="stopMove()" class="bg-emerald-950/80 border border-emerald-500/40 rounded-lg text-emerald-300 font-bold flex items-center justify-center">⬆️</button>
+                <div></div>
+                <button onmousedown="startMove('left')" onmouseup="stopMove()" ontouchstart="startMove('left')" ontouchend="stopMove()" class="bg-emerald-950/80 border border-emerald-500/40 rounded-lg text-emerald-300 font-bold flex items-center justify-center">⬅️</button>
+                <div class="bg-emerald-500/20 rounded-lg flex items-center justify-center text-xs font-mono text-emerald-300">WALK</div>
+                <button onmousedown="startMove('right')" onmouseup="stopMove()" ontouchstart="startMove('right')" ontouchend="stopMove()" class="bg-emerald-950/80 border border-emerald-500/40 rounded-lg text-emerald-300 font-bold flex items-center justify-center">➡️</button>
+                <div></div>
+                <button onmousedown="startMove('backward')" onmouseup="stopMove()" ontouchstart="startMove('backward')" ontouchend="stopMove()" class="bg-emerald-950/80 border border-emerald-500/40 rounded-lg text-emerald-300 font-bold flex items-center justify-center">⬇️</button>
+                <div></div>
+            </div>
+            <div class="text-[10px] font-mono text-emerald-400 space-y-1">
+                <p class="font-bold">🧭 EXPLORER MODE</p>
+                <p>Float through neuronal network.</p>
+                <button onclick="toggleExplorerMode()" class="px-2 py-1 bg-emerald-500/30 rounded border border-emerald-400 text-emerald-200">EXIT</button>
+            </div>
+        </div>
+
+        <!-- Camera Control D-Pad for Standard Orbit Mode -->
+        <div id="orbit-controls-bar" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex items-center space-x-2 sm:space-x-3 glass-panel px-3 sm:px-4 py-2 rounded-2xl border border-cyan-500/40 pointer-events-auto">
+            <span class="text-[10px] font-mono text-cyan-400 hidden sm:inline">ORBIT:</span>
+            <button onclick="adjustCamAngle(-0.4, 0)" class="w-8 h-8 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 flex items-center justify-center hover:bg-cyan-500/20 cursor-pointer font-bold text-xs">⬅️</button>
+            <button onclick="adjustCamAngle(0.4, 0)" class="w-8 h-8 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 flex items-center justify-center hover:bg-cyan-500/20 cursor-pointer font-bold text-xs">➡️</button>
+            <button onclick="adjustCamAngle(0, -0.3)" class="w-8 h-8 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 flex items-center justify-center hover:bg-cyan-500/20 cursor-pointer font-bold text-xs">⬆️</button>
+            <button onclick="adjustCamAngle(0, 0.3)" class="w-8 h-8 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 flex items-center justify-center hover:bg-cyan-500/20 cursor-pointer font-bold text-xs">⬇️</button>
+            <button onclick="resetCameraView()" class="px-2.5 py-1.5 rounded-xl bg-cyan-500/25 border border-cyan-400 text-cyan-200 font-mono text-[10px] sm:text-xs hover:bg-cyan-500/40 cursor-pointer">RESET</button>
+        </div>
+
+        <aside id="filecase-drawer" class="absolute left-2 sm:left-6 top-2 sm:top-6 bottom-2 sm:bottom-6 w-72 sm:w-80 z-20 flex flex-col space-y-3 pointer-events-auto transition-transform duration-300 -translate-x-[115%]">
+            <div class="glass-panel rounded-2xl p-3.5 sm:p-4 flex flex-col h-full shadow-2xl border border-cyan-500/40">
+                <div class="flex items-center justify-between pb-2.5 border-b border-cyan-500/20 mb-2.5">
+                    <h2 class="font-mono text-xs sm:text-sm font-bold text-cyan-300 flex items-center space-x-2">
+                        <span>📁</span>
+                        <span>MULTI-CASE TERMINAL</span>
+                    </h2>
+                    <button onclick="toggleMobileHUD()" class="text-cyan-400 hover:text-cyan-200 text-xs font-mono p-1">❌ CLOSE</button>
+                </div>
+
+                <!-- Quick Action Upload & Note Buttons -->
+                <div class="grid grid-cols-2 gap-2 mb-2.5">
+                    <button onclick="openEZUploadModal()" class="py-1.5 px-2 rounded-xl bg-cyan-500/25 border border-cyan-400 text-cyan-200 text-[10px] font-mono flex items-center justify-center space-x-1 cursor-pointer">
+                        <span>📤</span><span>UPLOAD</span>
+                    </button>
+                    <button onclick="openAddTextNodeModal()" class="py-1.5 px-2 rounded-xl bg-emerald-500/25 border border-emerald-400 text-emerald-200 text-[10px] font-mono flex items-center justify-center space-x-1 cursor-pointer">
+                        <span>📝</span><span>NOTE</span>
+                    </button>
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative mb-2.5">
+                    <span class="absolute left-3 top-2.5 text-xs">🔍</span>
+                    <input type="text" id="evidence-search" oninput="filterFilecase(this.value)" placeholder="Search case files, URLs, MP3..." class="w-full bg-quantum-dark/90 border border-cyan-500/30 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <!-- Case Filter Buttons -->
+                <div class="grid grid-cols-4 gap-1 mb-2.5 text-center">
+                    <button onclick="setCaseFilter('all')" id="case-btn-all" class="py-1 rounded-lg bg-cyan-500/25 border border-cyan-400 text-cyan-200 text-[10px] font-mono cursor-pointer">🌐 ALL</button>
+                    <button onclick="setCaseFilter('Alpha')" id="case-btn-Alpha" class="py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-cyan-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer">🛡️ ALPHA</button>
+                    <button onclick="setCaseFilter('Omega')" id="case-btn-Omega" class="py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-purple-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer">🔮 OMEGA</button>
+                    <button onclick="setCaseFilter('Rupture')" id="case-btn-Rupture" class="py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-emerald-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer">⚡ RUPTURE</button>
+                </div>
+
+                <!-- Filecase List -->
+                <div id="filecase-list" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <div class="pt-2.5 border-t border-cyan-500/25 mt-2 flex items-center justify-between text-[10px] font-mono text-cyan-400/70">
+                    <span id="filecase-count">0 NODES</span>
+                    <button onclick="toggleMobileHUD()" class="text-cyan-300 underline cursor-pointer">COLLAPSE</button>
+                </div>
+            </div>
+        </aside>
+
+        <div id="inspector-panel" class="absolute right-2 sm:right-6 top-2 sm:top-6 bottom-2 sm:bottom-6 w-80 sm:w-[420px] z-20 flex flex-col pointer-events-auto transform translate-x-[115%] transition-transform duration-300 ease-out">
+            <div class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col h-full shadow-2xl border border-cyan-500/50 relative overflow-hidden">
+                <button onclick="closeInspector()" class="absolute top-4 right-4 p-1.5 rounded-lg bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 cursor-pointer z-10">
+                    ❌
+                </button>
+                <div class="flex items-center space-x-3 pb-3 border-b border-cyan-500/20 mb-3 pr-8">
+                    <div id="inspector-icon" class="w-10 h-10 rounded-xl bg-cyan-950/90 border border-cyan-500/50 flex items-center justify-center text-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0">
+                        📄
+                    </div>
+                    <div class="min-w-0">
+                        <span id="inspector-category" class="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/20">CASE NODE</span>
+                        <h3 id="inspector-title" class="font-mono text-xs sm:text-sm font-bold text-cyan-200 mt-0.5 truncate">Node Title</h3>
+                    </div>
+                </div>
+
+                <!-- Inspector Dynamic Content & Non-Fullscreen Inline Media -->
+                <div id="inspector-content" class="flex-1 overflow-y-auto space-y-3.5 pr-1 text-xs font-mono">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <!-- Inspector Actions -->
+                <div class="pt-3 border-t border-cyan-500/20 mt-3 flex items-center space-x-2">
+                    <button onclick="reconstructNodeAI()" class="flex-1 py-2 rounded-xl bg-cyan-500/25 border border-cyan-400 text-cyan-200 font-mono text-xs hover:bg-cyan-500/40 transition-all flex items-center justify-center space-x-2 cursor-pointer">
+                        <span>✨</span>
+                        <span>AI DEEP SCAN</span>
+                    </button>
+                    <button onclick="toggleNodePin()" id="pin-btn" class="px-3.5 py-2 rounded-xl bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-mono text-xs hover:bg-cyan-900 cursor-pointer" title="Pin Node">
+                        📌
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- EZ Upload & Website Link Modal -->
+    <div id="ez-upload-modal" class="fixed inset-0 z-50 bg-quantum-dark/85 backdrop-blur-md flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 w-full max-w-md border border-cyan-500/55 shadow-2xl relative">
+            <div class="flex items-center justify-between pb-3 border-b border-cyan-500/20 mb-4">
+                <h3 class="font-mono text-sm font-bold text-cyan-300 flex items-center space-x-2">
+                    <span>📤</span>
+                    <span>UPLOAD EVIDENCE OR EMBED WEBSITE LINK</span>
+                </h3>
+                <button onclick="closeEZUploadModal()" class="p-1 rounded-lg hover:bg-cyan-500/20 text-cyan-300 cursor-pointer">❌</button>
+            </div>
+
+            <!-- Drag & Drop Box -->
+            <div onclick="document.getElementById('file-input-hidden').click()" class="border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 bg-cyan-950/20 rounded-2xl p-4 text-center cursor-pointer transition-all mb-3 group">
+                <input type="file" id="file-input-hidden" onchange="handleFileSelected(event)" class="hidden" accept="image/*,video/*,audio/*,.html,.htm,.txt,.json,.mp3,.wav,.ogg">
+                <div class="text-2xl mb-1 group-hover:scale-110 transition-transform">🌌</div>
+                <p class="font-mono text-xs font-bold text-cyan-200">DROP FILE / MEDIA (PICTURE, MP3, VIDEO, HTML)</p>
+            </div>
+
+            <!-- Manual Form Override -->
+            <form onsubmit="submitUploadedFile(event)" class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-cyan-400 mb-1 text-[10px]">EVIDENCE TITLE</label>
+                    <input type="text" id="upload-title" required placeholder="e.g., Vault Breach Snapshot or Web Portal" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-cyan-400 mb-1 text-[10px]">MULTI-CASE ASSIGNMENTS</label>
+                        <div id="upload-cases-checkboxes" class="space-y-1 bg-quantum-dark border border-cyan-500/30 rounded-xl p-2 text-cyan-200 text-[10px]">
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" name="cases" value="Alpha" checked class="accent-cyan-500"> <span>Case Alpha</span></label>
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" name="cases" value="Omega" class="accent-purple-500"> <span>Case Omega</span></label>
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" name="cases" value="Rupture" class="accent-emerald-500"> <span>Case Rupture</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-cyan-400 mb-1 text-[10px]">MEDIA TYPE</label>
+                        <select id="upload-type" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-2.5 py-2 text-cyan-200 focus:outline-none focus:border-cyan-400">
+                            <option value="image">🖼️ Picture / Photo</option>
+                            <option value="video">🎥 Video (Inline Play)</option>
+                            <option value="audio">🎙️ MP3 Audio Log</option>
+                            <option value="website">🌐 Website / Link Embed</option>
+                            <option value="html">🌐 HTML Code Card</option>
+                            <option value="text">📝 Text Note</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-cyan-400 mb-1 text-[10px]">MEDIA URL OR WEBSITE LINK</label>
+                    <input type="text" id="upload-url" placeholder="https://... (Image, Video, MP3, or Website URL)" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400">
+                </div>
+                <div>
+                    <label class="block text-cyan-400 mb-1 text-[10px]">INVESTIGATION NOTES</label>
+                    <textarea id="upload-desc" rows="2" required placeholder="Case details..." class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl px-3 py-2 text-cyan-200 placeholder-cyan-500/40 focus:outline-none focus:border-cyan-400"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeEZUploadModal()" class="px-4 py-2 rounded-xl bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-900 cursor-pointer">CANCEL</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-cyan-500/30 border border-cyan-400 text-cyan-200 hover:bg-cyan-500/50 cursor-pointer font-bold">✨ SPAWN IN 3D</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Text Node Modal -->
+    <div id="text-node-modal" class="fixed inset-0 z-50 bg-quantum-dark/85 backdrop-blur-md flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 w-full max-w-md border border-emerald-500/55 shadow-2xl relative">
+            <div class="flex items-center justify-between pb-3 border-b border-emerald-500/20 mb-4">
+                <h3 class="font-mono text-sm font-bold text-emerald-300 flex items-center space-x-2">
+                    <span>📝</span>
+                    <span>ADD OBSERVATION TEXT NODE</span>
+                </h3>
+                <button onclick="closeAddTextNodeModal()" class="p-1 rounded-lg hover:bg-emerald-500/20 text-emerald-300 cursor-pointer">❌</button>
+            </div>
+            <form onsubmit="submitTextNode(event)" class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-emerald-400 mb-1 text-[10px]">NOTE TITLE</label>
+                    <input type="text" id="text-node-title" required placeholder="e.g., Chronal Anomaly Hypothesis" class="w-full bg-quantum-dark border border-emerald-500/30 rounded-xl px-3 py-2 text-emerald-200 placeholder-emerald-500/40 focus:outline-none focus:border-emerald-400">
+                </div>
+                <div>
+                    <label class="block text-emerald-400 mb-1 text-[10px]">CASE ASSIGNMENTS</label>
+                    <div id="text-node-cases-checkboxes" class="space-y-1 bg-quantum-dark border border-emerald-500/30 rounded-xl p-2 text-emerald-200 text-[10px]">
+                        <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" name="cases-txt" value="Alpha" checked class="accent-emerald-500"> <span>Case Alpha</span></label>
+                        <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" name="cases-txt" value="Omega" class="accent-purple-500"> <span>Case Omega</span></label>
+                        <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" name="cases-txt" value="Rupture" class="accent-cyan-500"> <span>Case Rupture</span></label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-emerald-400 mb-1 text-[10px]">NOTE CONTENT</label>
+                    <textarea id="text-node-content" rows="3" required placeholder="Type observation..." class="w-full bg-quantum-dark border border-emerald-500/30 rounded-xl px-3 py-2 text-emerald-200 placeholder-emerald-500/40 focus:outline-none focus:border-emerald-400"></textarea>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeAddTextNodeModal()" class="px-4 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-900 cursor-pointer">CANCEL</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-500/30 border border-emerald-400 text-emerald-200 hover:bg-emerald-500/50 cursor-pointer font-bold">✨ CREATE 3D NOTE</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal (Lighting & Ambient Music) -->
+    <div id="settings-modal" class="fixed inset-0 z-50 bg-quantum-dark/85 backdrop-blur-md flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 w-full max-w-md border border-cyan-500/55 shadow-2xl relative font-mono text-xs">
+            <div class="flex items-center justify-between pb-3 border-b border-cyan-500/20 mb-4">
+                <h3 class="text-sm font-bold text-cyan-300 flex items-center space-x-2">
+                    <span>⚙️</span>
+                    <span>Q-OS AMBIENT & LIGHTING SETTINGS</span>
+                </h3>
+                <button onclick="closeSettingsModal()" class="p-1 rounded-lg hover:bg-cyan-500/20 text-cyan-300 cursor-pointer">❌</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-cyan-400 mb-1.5 text-[10px]">AMBIENT MUSIC TRACK</label>
+                    <select id="setting-music-track" onchange="changeAmbientTrack(this.value)" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl p-2.5 text-cyan-200 focus:outline-none">
+                        <option value="quantum">🌌 Quantum Deep Space Drone</option>
+                        <option value="cyber">🎧 Cyber Neon Synth Wave</option>
+                        <option value="rain">🌧️ Rain Anomaly Ambience</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-cyan-400 mb-1.5 text-[10px]">PICTURE & LIGHTING DESIGN</label>
+                    <select id="setting-lighting-theme" onchange="changeLightingTheme(this.value)" class="w-full bg-quantum-dark border border-cyan-500/30 rounded-xl p-2.5 text-cyan-200 focus:outline-none">
+                        <option value="cyan">⚡ Cybernetic Cyan (Default)</option>
+                        <option value="matrix">🟢 Matrix Emerald Grid</option>
+                        <option value="violet">🔮 Royal Void Violet</option>
+                    </select>
+                </div>
+                <div class="pt-2 flex justify-end">
+                    <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl bg-cyan-500/30 border border-cyan-400 text-cyan-200 hover:bg-cyan-500/50 cursor-pointer font-bold">SAVE SETTINGS</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-20 right-6 z-50 glass-panel border border-cyan-400/60 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-32 transition-transform duration-300">
+        <span class="text-lg">✨</span>
+        <span id="toast-msg" class="font-mono text-xs text-cyan-200">System updated.</span>
+    </div>
+
+    <script>
+        // Multi-Case Evidence Database with geographic origins for Holo Table Map support
+        let filecaseData = [
+            { 
+                id: 1, 
+                title: "Vault Breach Snapshot", 
+                caseIds: ["Alpha", "Omega"], 
+                type: "image", 
+                url: "https://placehold.co/600x400/06b6d4/030712?text=Vault+Breach+Photo", 
+                tags: "#surveillance #sec7 #vault", 
+                date: "2088-11-04 12:15", 
+                desc: "Encrypted optical capture showing rapid phase-shifting anomaly near vault entrance.", 
+                origin: "Sector 7 Central Vault, New Geneva",
+                geo: {x: -1.8, y: -0.5, z: 1.2},
+                color: 0x06b6d4, 
+                pos: {x: 2.2, y: 1.2, z: 0.0} 
+            },
+            { 
+                id: 2, 
+                title: "Dr. Kaelen MP3 Audio Log", 
+                caseIds: ["Alpha"], 
+                type: "audio", 
+                url: "https://actions.google.com/sounds/v1/ambiences/rain_heavy.ogg", 
+                tags: "#audio #mp3 #kaelen #chronal", 
+                date: "2088-11-04 13:40", 
+                desc: "Panic MP3 voice log regarding chronal degradation and missing encryption keys.", 
+                origin: "Research Lab 4B, Orbital Station Theta",
+                geo: {x: 1.2, y: 1.5, z: -1.0},
+                color: 0x38bdf8, 
+                pos: {x: 1.0, y: 2.2, z: 1.2} 
+            },
+            { 
+                id: 3, 
+                title: "Chronal Rupture Video Stream", 
+                caseIds: ["Omega", "Rupture"], 
+                type: "video", 
+                url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", 
+                tags: "#video #rupture #evidence", 
+                date: "2088-11-04 14:00", 
+                desc: "Security camera live video feed showing breach in primary resonance chamber.", 
+                origin: "Resonance Chamber 9, Sub-Level Zero",
+                geo: {x: 0.0, y: 2.0, z: 1.8},
+                color: 0xa855f7, 
+                pos: {x: -2.2, y: 1.5, z: -0.8} 
+            },
+            { 
+                id: 4, 
+                title: "Quantum AI Portal (Website)", 
+                caseIds: ["Omega"], 
+                type: "website", 
+                url: "https://en.wikipedia.org/wiki/Quantum_computing", 
+                tags: "#website #link #portal #ai", 
+                date: "2088-11-04 14:10", 
+                desc: "Live external quantum knowledge portal recovered from secured mainframe memory.", 
+                origin: "Global Net Node Alpha-1",
+                geo: {x: 2.0, y: -1.2, z: -0.5},
+                color: 0xa855f7, 
+                pos: {x: -1.5, y: -0.8, z: 1.8} 
+            },
+            { 
+                id: 5, 
+                title: "Inspector Hypothesis Note", 
+                caseIds: ["Rupture", "Alpha"], 
+                type: "text", 
+                content: "All three anomaly zones show synchronized harmonic frequency drops at 03:00 AM.", 
+                tags: "#text #hypothesis #note", 
+                date: "2088-11-04 14:30", 
+                desc: "Investigative observation text note pinned to multiple case networks.", 
+                origin: "Inspector Desk, Terminal 12",
+                geo: {x: -1.0, y: -1.5, z: -1.5},
+                color: 0x10b981, 
+                pos: {x: 0.0, y: -2.0, z: -1.5} 
+            },
+            { 
+                id: 6, 
+                title: "Sub-Harmonic Audio Trace", 
+                caseIds: ["Rupture"], 
+                type: "audio", 
+                url: "https://actions.google.com/sounds/v1/science_fiction/teleport.ogg", 
+                tags: "#audio #mp3 #frequency #rupture", 
+                date: "2088-11-04 14:45", 
+                desc: "Low frequency MP3 hum detected right before chronal rupture event.", 
+                origin: "Sub-Surface Array 3, Sector 9",
+                geo: {x: 1.5, y: -2.0, z: 1.0},
+                color: 0x10b981, 
+                pos: {x: 1.8, y: -1.5, z: 0.8} 
+            }
+        ];
+
+        let currentCaseFilter = 'all';
+        let selectedNodeId = null;
+        let mobileTerminalOpen = false;
+        let explorerModeActive = false;
+        let holoTableViewActive = false;
+        let moveDir = { forward: false, backward: false, left: false, right: false };
+
+        // Web Audio API Ambient Music Synth Generator
+        let audioCtx = null;
+        let audioPlaying = false;
+        let ambientOscillator = null;
+        let ambientGain = null;
+
+        function toggleAudioSystem() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            audioPlaying = !audioPlaying;
+            const statusEl = document.getElementById('audio-status');
+
+            if (audioPlaying) {
+                statusEl.innerText = "ON";
+                startAmbientDrone();
+                showToast("🎵 Ambient quantum music activated.");
+            } else {
+                statusEl.innerText = "OFF";
+                stopAmbientDrone();
+                showToast("🔇 Ambient music muted.");
+            }
+        }
+
+        function startAmbientDrone() {
+            if (ambientGain) {
+                try { ambientGain.disconnect(); } catch(e){}
+            }
+            ambientOscillator = audioCtx.createOscillator();
+            ambientGain = audioCtx.createGain();
+
+            ambientOscillator.type = 'sine';
+            ambientOscillator.frequency.setValueAtTime(110, audioCtx.currentTime); // A2 note
+            
+            // LFO for pulsing cosmic wave
+            const lfo = audioCtx.createOscillator();
+            lfo.frequency.value = 0.1;
+            const lfoGain = audioCtx.createGain();
+            lfoGain.gain.value = 25;
+            lfo.connect(lfoGain);
+            lfoGain.connect(ambientOscillator.frequency);
+            lfo.start();
+
+            ambientGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            ambientOscillator.connect(ambientGain);
+            ambientGain.connect(audioCtx.destination);
+            ambientOscillator.start();
+        }
+
+        function stopAmbientDrone() {
+            if (ambientOscillator) {
+                try { ambientOscillator.stop(); } catch(e){}
+            }
+        }
+
+        function changeAmbientTrack(track) {
+            showToast(`🎵 Ambient track updated to ${track}.`);
+            if (audioPlaying) startAmbientDrone();
+        }
+
+        let lightingColors = { cyan: 0x06b6d4, matrix: 0x10b981, violet: 0xa855f7 };
+        function changeLightingTheme(theme) {
+            const hex = lightingColors[theme] || 0x06b6d4;
+            scene.fog.color.setHex(0x030712);
+            showToast(`💡 Lighting design updated to ${theme}.`);
+        }
+
+        // Toggle Terminal / Drawer (Properly hidden/shown without blocking canvas when closed)
+        function toggleMobileHUD() {
+            mobileTerminalOpen = !mobileTerminalOpen;
+            const drawer = document.getElementById('filecase-drawer');
+            if (mobileTerminalOpen) {
+                drawer.classList.remove('-translate-x-[115%]');
+                showToast("🖥️ Multi-Case Terminal opened.");
+            } else {
+                drawer.classList.add('-translate-x-[115%]');
+                showToast("🖥️ Terminal collapsed.");
+            }
+        }
+
+        // Three.js 3D Spherical Cosmos & Holo Table Setup
+        let scene, camera, renderer, nodeMeshes = [], constellationLines, centralCore, raycaster, mouse;
+        let isDragging = false;
+        let prevMousePos = { x: 0, y: 0 };
+        let camRot = { x: 0, y: 0 };
+        let targetCamRot = { x: 0, y: 0 };
+        let explorerPos = { x: 0, y: 0, z: 6.5 };
+        let explorerHeading = 0;
+        const textureLoader = new THREE.TextureLoader();
+        let videoTexturesToUpdate = [];
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x030712, 0.022);
+
+            camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 6.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Lighting
+            const ambient = new THREE.AmbientLight(0x06b6d4, 0.9);
+            scene.add(ambient);
+
+            const pointLight = new THREE.PointLight(0x38bdf8, 3.5, 45);
+            pointLight.position.set(0, 0, 0);
+            scene.add(pointLight);
+
+            // Central Quantum Core / Holo Table Base
+            const coreGeo = new THREE.IcosahedronGeometry(1.2, 2);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.3 });
+            centralCore = new THREE.Mesh(coreGeo, coreMat);
+            scene.add(centralCore);
+
+            // Starry Cosmos Dust
+            const pGeo = new THREE.BufferGeometry();
+            const pPos = new Float32Array(500 * 3);
+            for(let i = 0; i < 500 * 3; i += 3) {
+                pPos[i] = (Math.random() - 0.5) * 35;
+                pPos[i+1] = (Math.random() - 0.5) * 35;
+                pPos[i+2] = (Math.random() - 0.5) * 35;
+            }
+            pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+            scene.add(new THREE.Points(pGeo, new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.04, transparent: true, opacity: 0.7 })));
+
+            build3DNodes();
+
+            // Event Listeners for Camera Freedom & Navigation
+            window.addEventListener('resize', onResize);
+            container.addEventListener('mousedown', (e) => { isDragging = true; prevMousePos = { x: e.clientX, y: e.clientY }; });
+            container.addEventListener('mousemove', (e) => {
+                if (!isDragging || explorerModeActive) return;
+                targetCamRot.y += (e.clientX - prevMousePos.x) * 0.005;
+                targetCamRot.x += (e.clientY - prevMousePos.y) * 0.005;
+                targetCamRot.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, targetCamRot.x));
+                prevMousePos = { x: e.clientX, y: e.clientY };
+            });
+            container.addEventListener('mouseup', () => { isDragging = false; });
+            container.addEventListener('click', onCanvasClick);
+
+            // Touch events for mobile
+            container.addEventListener('touchstart', (e) => {
+                if(e.touches.length === 1 && !explorerModeActive) { isDragging = true; prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }
+            });
+            container.addEventListener('touchmove', (e) => {
+                if(!isDragging || e.touches.length !== 1 || explorerModeActive) return;
+                targetCamRot.y += (e.touches[0].clientX - prevMousePos.x) * 0.006;
+                targetCamRot.x += (e.touches[0].clientY - prevMousePos.y) * 0.006;
+                targetCamRot.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, targetCamRot.x));
+                prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+            container.addEventListener('touchend', () => { isDragging = false; });
+
+            container.addEventListener('wheel', (e) => {
+                if(!explorerModeActive) {
+                    camera.position.z += e.deltaY * 0.005;
+                    camera.position.z = Math.max(3.0, Math.min(14.0, camera.position.z));
+                }
+            });
+
+            animate();
+        }
+
+        // Generate gorgeous Canvas 3D Card Skin Textures for MP3, HTML, Text Notes & Websites
+        function createCardTexture(item) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 340;
+            const ctx = canvas.getContext('2d');
+            
+            const isConnected = selectedNodeId && (item.id === selectedNodeId || areNodesConnected(item.id, selectedNodeId));
+            
+            ctx.fillStyle = isConnected ? '#0e7490' : '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = isConnected ? '#38bdf8' : '#06b6d4';
+            ctx.lineWidth = isConnected ? 12 : 8;
+            ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+            
+            ctx.fillStyle = '#030712';
+            ctx.fillRect(20, 20, canvas.width - 40, 50);
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 22px Orbitron, monospace';
+            ctx.fillText(item.type.toUpperCase() + ' // ' + item.caseIds.join(', '), 35, 52);
+            
+            ctx.fillStyle = '#f3f4f6';
+            ctx.font = 'bold 26px Inter, sans-serif';
+            ctx.fillText(item.title, 35, 115, canvas.width - 70);
+            
+            ctx.fillStyle = '#93c5fd';
+            ctx.font = '16px Inter, sans-serif';
+            const snippet = item.desc || item.content || item.url || item.tags;
+            ctx.fillText(snippet.substring(0, 50) + '...', 35, 165, canvas.width - 70);
+            
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.35)';
+            ctx.fillRect(35, 220, 240, 55);
+            ctx.fillStyle = '#67e8f9';
+            ctx.font = 'bold 16px Orbitron, monospace';
+            ctx.fillText(item.type === 'audio' ? '🎙️ MP3 AUDIO LOG' : item.type === 'website' ? '🌐 WEBSITE PORTAL' : '📝 OBSERVATION NOTE', 50, 255);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function areNodesConnected(idA, idB) {
+            const nodeA = filecaseData.find(e => e.id === idA);
+            const nodeB = filecaseData.find(e => e.id === idB);
+            if (!nodeA || !nodeB) return false;
+            return nodeA.caseIds.some(c => nodeB.caseIds.includes(c));
+        }
+
+        function build3DNodes() {
+            nodeMeshes.forEach(m => scene.remove(m));
+            nodeMeshes = [];
+            videoTexturesToUpdate = [];
+
+            if (constellationLines) scene.remove(constellationLines);
+
+            const linePositions = [];
+            const lineColors = [];
+
+            filecaseData.forEach((item) => {
+                const matches = currentCaseFilter === 'all' || item.caseIds.includes(currentCaseFilter);
+                const isSelected = selectedNodeId === item.id;
+                const isConnectedToSelected = selectedNodeId && areNodesConnected(item.id, selectedNodeId);
+
+                const group = new THREE.Group();
+                group.userData = { id: item.id };
+
+                let mat, geo;
+                // If Holo Table Map view is active, place nodes on geographic holo table coordinates
+                const targetPos = holoTableViewActive ? item.geo : item.pos;
+
+                if (item.type === 'image') {
+                    geo = new THREE.PlaneGeometry(0.85, 0.58);
+                    const tex = textureLoader.load(item.url, undefined, undefined, () => {});
+                    mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: matches ? 1.0 : 0.25 });
+                } else if (item.type === 'video') {
+                    geo = new THREE.PlaneGeometry(0.85, 0.58);
+                    const video = document.createElement('video');
+                    video.src = item.url;
+                    video.crossOrigin = 'anonymous';
+                    video.loop = true;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.play().catch(e => console.log(e));
+                    const videoTexture = new THREE.VideoTexture(video);
+                    videoTexturesToUpdate.push(videoTexture);
+                    mat = new THREE.MeshBasicMaterial({ map: videoTexture, side: THREE.DoubleSide, transparent: true, opacity: matches ? 1.0 : 0.25 });
+                } else {
+                    geo = new THREE.PlaneGeometry(0.85, 0.58);
+                    const cardTex = createCardTexture(item);
+                    mat = new THREE.MeshBasicMaterial({ map: cardTex, side: THREE.DoubleSide, transparent: true, opacity: matches ? 1.0 : 0.25 });
+                }
+
+                const mesh = new THREE.Mesh(geo, mat);
+                group.add(mesh);
+
+                const shellGeo = geo.clone();
+                const shellColor = isSelected ? 0x00ffcc : isConnectedToSelected ? 0x38bdf8 : item.color;
+                const shellMat = new THREE.MeshBasicMaterial({ color: shellColor, wireframe: true, transparent: true, opacity: (isSelected || isConnectedToSelected) ? 0.9 : 0.35 });
+                const shell = new THREE.Mesh(shellGeo, shellMat);
+                shell.scale.set(1.1, 1.1, 1.1);
+                group.add(shell);
+
+                group.position.set(targetPos.x, targetPos.y, targetPos.z);
+                scene.add(group);
+                nodeMeshes.push(group);
+            });
+
+            // Build constellation lines
+            for (let i = 0; i < filecaseData.length; i++) {
+                for (let j = i + 1; j < filecaseData.length; j++) {
+                    const nodeA = filecaseData[i];
+                    const nodeB = filecaseData[j];
+                    const shareCase = nodeA.caseIds.some(c => nodeB.caseIds.includes(c));
+                    const activeFilterMatch = currentCaseFilter === 'all' || (nodeA.caseIds.includes(currentCaseFilter) && nodeB.caseIds.includes(currentCaseFilter));
+                    const isLinkedToSelected = selectedNodeId && (nodeA.id === selectedNodeId || nodeB.id === selectedNodeId) && areNodesConnected(nodeA.id, nodeB.id);
+
+                    if (shareCase && (activeFilterMatch || isLinkedToSelected)) {
+                        const posA = holoTableViewActive ? nodeA.geo : nodeA.pos;
+                        const posB = holoTableViewActive ? nodeB.geo : nodeB.pos;
+                        linePositions.push(posA.x, posA.y, posA.z);
+                        linePositions.push(posB.x, posB.y, posB.z);
+
+                        const col = new THREE.Color(isLinkedToSelected ? 0x00ffcc : nodeA.color);
+                        lineColors.push(col.r, col.g, col.b);
+                        lineColors.push(col.r, col.g, col.b);
+                    }
+                }
+            }
+
+            if (linePositions.length > 0) {
+                const lineGeo = new THREE.BufferGeometry();
+                lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+                lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(lineColors, 3));
+                
+                const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.65, linewidth: 3 });
+                const lines = new THREE.LineSegments(lineGeo, lineMat);
+                scene.add(lines);
+                constellationLines = lines;
+            }
+
+            renderCosmosLabels();
+        }
+
+        function renderCosmosLabels() {
+            const layer = document.getElementById('cosmos-labels-layer');
+            layer.innerHTML = filecaseData.map(item => {
+                const isSelected = selectedNodeId === item.id;
+                const isConnected = selectedNodeId && areNodesConnected(item.id, selectedNodeId);
+                const badgeColor = isSelected ? 'bg-cyan-500/40 border-cyan-300 shadow-[0_0_15px_#06b6d4]' : isConnected ? 'bg-indigo-500/30 border-indigo-400 shadow-[0_0_12px_#38bdf8]' : 'glass-panel border-cyan-500/40';
+                
+                return `
+                    <div id="node-label-${item.id}" onclick="selectFilecaseNode(${item.id})" class="node-floating-tag px-2.5 py-1 rounded-lg ${badgeColor} text-[10px] font-mono text-cyan-200 cursor-pointer hover:bg-cyan-500/30 flex items-center space-x-1.5 transition-all">
+                        <span>${item.type === 'image' ? '🖼️' : item.type === 'video' ? '🎥' : item.type === 'audio' ? '🎙️' : item.type === 'website' ? '🌐' : '📝'}</span>
+                        <span class="font-bold truncate max-w-[140px]">${item.title}</span>
+                        <span class="text-[9px] text-cyan-400 bg-quantum-dark px-1.5 rounded">${item.caseIds[0]}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateCosmosLabels() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            nodeMeshes.forEach((group, idx) => {
+                const item = filecaseData[idx];
+                const label = document.getElementById(`node-label-${item.id}`);
+                if (!label) return;
+
+                group.lookAt(camera.position);
+
+                const pos = group.position.clone();
+                pos.project(camera);
+
+                if (pos.z < 1) {
+                    const x = (pos.x * 0.5 + 0.5) * width;
+                    const y = (-(pos.y * 0.5) + 0.5) * height - 52;
+                    label.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                    label.style.opacity = (currentCaseFilter === 'all' || item.caseIds.includes(currentCaseFilter) || selectedNodeId === item.id) ? '1' : '0.2';
+                } else {
+                    label.style.opacity = '0';
+                }
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (explorerModeActive) {
+                // First-person particle movement
+                let speed = 0.05;
+                if (moveDir.forward) camera.position.z -= speed;
+                if (moveDir.backward) camera.position.z += speed;
+                if (moveDir.left) camera.position.x -= speed;
+                if (moveDir.right) camera.position.x += speed;
+            } else {
+                camRot.x += (targetCamRot.x - camRot.x) * 0.08;
+                camRot.y += (targetCamRot.y - camRot.y) * 0.08;
+
+                const r = holoTableViewActive ? 7.5 : 6.8;
+                camera.position.x = r * Math.sin(camRot.y) * Math.cos(camRot.x);
+                camera.position.y = holoTableViewActive ? 3.5 : r * Math.sin(camRot.x);
+                camera.position.z = r * Math.cos(camRot.y) * Math.cos(camRot.x);
+                camera.lookAt(0, holoTableViewActive ? -0.5 : 0, 0);
+            }
+
+            if (centralCore) {
+                centralCore.rotation.y += 0.003;
+                centralCore.rotation.x += 0.001;
+            }
+
+            videoTexturesToUpdate.forEach(vt => {
+                if (vt) vt.needsUpdate = true;
+            });
+
+            renderer.render(scene, camera);
+            updateCosmosLabels();
+        }
+
+        function onResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function onCanvasClick(e) {
+            const container = document.getElementById('canvas-container');
+            const rect = container.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            for(let hit of intersects) {
+                let obj = hit.object;
+                while(obj.parent && !obj.userData.id) obj = obj.parent;
+                if (obj.userData && obj.userData.id) {
+                    selectFilecaseNode(obj.userData.id);
+                    break;
+                }
+            }
+        }
+
+        function adjustCamAngle(deltaY, deltaX) {
+            targetCamRot.y += deltaY;
+            targetCamRot.x += deltaX;
+            targetCamRot.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, targetCamRot.x));
+        }
+
+        function resetCameraView() {
+            targetCamRot = { x: 0, y: 0 };
+            camera.position.set(0, 0, 6.5);
+            showToast("🎥 Camera reset.");
+        }
+
+        // Toggle First-Person Explorer Mode
+        function toggleExplorerMode() {
+            explorerModeActive = !explorerModeActive;
+            const joystick = document.getElementById('explorer-joystick-container');
+            const orbitBar = document.getElementById('orbit-controls-bar');
+            const btn = document.getElementById('explorer-mode-btn');
+
+            if (explorerModeActive) {
+                joystick.classList.remove('hidden');
+                joystick.classList.add('flex');
+                orbitBar.classList.add('hidden');
+                btn.className = "px-2.5 py-1.5 rounded-lg bg-emerald-500/40 border border-emerald-400 text-emerald-200 font-mono text-xs flex items-center space-x-1 cursor-pointer";
+                showToast("🧭 Explorer Mode active: Float through neuronal network.");
+            } else {
+                joystick.classList.add('hidden');
+                joystick.classList.remove('flex');
+                orbitBar.classList.remove('hidden');
+                btn.className = "px-2.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/50 text-emerald-300 font-mono text-xs hover:bg-emerald-500/35 transition-all flex items-center space-x-1 cursor-pointer";
+                showToast("🧭 Returned to Orbit Cosmos.");
+            }
+        }
+
+        function startMove(dir) { moveDir[dir] = true; }
+        function stopMove() { moveDir = { forward: false, backward: false, left: false, right: false }; }
+
+        // Toggle Holo Table Geographic Map View
+        function toggleHoloTableView() {
+            holoTableViewActive = !holoTableViewActive;
+            const btn = document.getElementById('holotable-btn');
+            if (holoTableViewActive) {
+                btn.className = "px-2.5 py-1.5 rounded-lg bg-purple-500/40 border border-purple-400 text-purple-200 font-mono text-xs flex items-center space-x-1 cursor-pointer";
+                showToast("🗺️ Holo Table Map activated: Geographic evidence origins mapped.");
+            } else {
+                btn.className = "px-2.5 py-1.5 rounded-lg bg-purple-500/20 border border-purple-400/50 text-purple-300 font-mono text-xs flex items-center space-x-1 cursor-pointer";
+                showToast("🌌 Returned to Spherical Cosmos.");
+            }
+            build3DNodes();
+        }
+
+        // Filecase Drawer & List
+        function renderFilecaseList() {
+            const listEl = document.getElementById('filecase-list');
+            const query = document.getElementById('evidence-search').value.toLowerCase();
+
+            const filtered = filecaseData.filter(item => {
+                const matchCase = currentCaseFilter === 'all' || item.caseIds.includes(currentCaseFilter);
+                const matchQuery = item.title.toLowerCase().includes(query) || item.tags.toLowerCase().includes(query) || item.caseIds.some(c => c.toLowerCase().includes(query));
+                return matchCase && matchQuery;
+            });
+
+            document.getElementById('filecase-count').innerText = `${filtered.length} NODES`;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-6 text-cyan-500/50 font-mono text-xs">No matching evidence nodes found.</div>`;
+                return;
+            }
+
+            const icons = { image: '🖼️', video: '🎥', audio: '🎙️', text: '📝', website: '🌐' };
+
+            listEl.innerHTML = filtered.map(item => {
+                const isSelected = selectedNodeId === item.id;
+                const isConnected = selectedNodeId && areNodesConnected(item.id, selectedNodeId);
+                
+                return `
+                    <div onclick="selectFilecaseNode(${item.id})" class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-center space-x-2.5 ${isSelected ? 'bg-cyan-500/30 border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.4)]' : isConnected ? 'bg-indigo-950/60 border-indigo-400/80 shadow-[0_0_10px_rgba(56,189,248,0.3)]' : 'bg-quantum-dark/70 border-cyan-500/20 hover:border-cyan-500/40 hover:bg-cyan-950/40'}">
+                        <div class="w-8 h-8 rounded-lg bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center shrink-0 text-sm">
+                            ${icons[item.type] || '📄'}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-mono text-xs font-bold text-cyan-200 truncate">${item.title}</h4>
+                                <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/30">${item.caseIds.join(', ')}</span>
+                            </div>
+                            <div class="flex items-center space-x-2 text-[10px] text-cyan-400/70 font-mono mt-0.5">
+                                <span>📍 ${item.origin || 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function setCaseFilter(caseId) {
+            currentCaseFilter = caseId;
+            ['all', 'Alpha', 'Omega', 'Rupture'].forEach(c => {
+                const btn = document.getElementById(`case-btn-${c}`);
+                if(btn) {
+                    if(c === caseId) {
+                        btn.className = "py-1 rounded-lg bg-cyan-500/25 border border-cyan-400 text-cyan-200 text-[10px] font-mono cursor-pointer";
+                    } else {
+                        btn.className = "py-1 rounded-lg bg-quantum-dark/60 border border-cyan-500/20 text-cyan-400/80 text-[10px] font-mono hover:bg-cyan-950 cursor-pointer";
+                    }
+                }
+            });
+            renderFilecaseList();
+            build3DNodes();
+        }
+
+        function filterFilecase(val) { renderFilecaseList(); }
+
+        // Select Node & Display Non-Fullscreen Inline Media Player & Website Embeds
+        function selectFilecaseNode(id) {
+            selectedNodeId = id;
+            const item = filecaseData.find(e => e.id === id);
+            if(!item) return;
+
+            renderFilecaseList();
+            build3DNodes();
+
+            const panel = document.getElementById('inspector-panel');
+            panel.classList.remove('translate-x-[115%]');
+
+            document.getElementById('inspector-title').innerText = item.title;
+            document.getElementById('inspector-category').innerText = `CASES: ${item.caseIds.join(', ')} // ${item.tags}`;
+            
+            const icons = { image: '🖼️', video: '🎥', audio: '🎙️', text: '📝', website: '🌐' };
+            document.getElementById('inspector-icon').innerText = icons[item.type] || '📄';
+
+            const contentEl = document.getElementById('inspector-content');
+            
+            let previewMarkup = '';
+            if (item.type === 'image') {
+                previewMarkup = `<div class="rounded-xl overflow-hidden border border-cyan-500/40 bg-quantum-dark aspect-video"><img src="${item.url}" alt="${item.title}" class="w-full h-full object-contain bg-black"></div>`;
+            } else if (item.type === 'video') {
+                // Non-fullscreen inline video player with original aspect ratio
+                previewMarkup = `<div class="rounded-xl overflow-hidden border border-cyan-500/40 bg-black"><video src="${item.url}" controls class="w-full h-auto max-h-[220px] object-contain mx-auto"></video></div>`;
+            } else if (item.type === 'audio') {
+                previewMarkup = `
+                    <div class="rounded-xl border border-cyan-500/40 bg-cyan-950/30 p-3 space-y-2">
+                        <span class="text-[10px] text-cyan-300 font-mono">🎙️ MP3 AUDIO LOG</span>
+                        <audio src="${item.url}" controls class="w-full mt-1"></audio>
+                    </div>`;
+            } else if (item.type === 'website') {
+                previewMarkup = `
+                    <div class="rounded-xl border border-cyan-500/40 bg-quantum-dark p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] text-cyan-400 font-mono">🌐 WEBSITE EMBED PORTAL</span>
+                            <a href="${item.url}" target="_blank" class="text-[10px] text-cyan-300 underline">OPEN TAB ↗</a>
+                        </div>
+                        <div class="w-full h-48 rounded-lg overflow-hidden border border-cyan-500/30 bg-black/50">
+                            <iframe src="${item.url}" class="w-full h-full border-0" sandbox="allow-scripts allow-same-origin"></iframe>
+                        </div>
+                    </div>`;
+            } else if (item.type === 'text') {
+                previewMarkup = `
+                    <div class="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-3 space-y-2">
+                        <span class="text-[10px] text-emerald-300 font-mono">📝 OBSERVATION TEXT NOTE</span>
+                        <p class="text-emerald-200 text-xs font-mono leading-relaxed">${item.content || item.desc}</p>
+                    </div>`;
+            }
+
+            contentEl.innerHTML = `
+                ${previewMarkup}
+                <div class="p-3 rounded-xl bg-quantum-dark border border-cyan-500/30 space-y-1">
+                    <span class="text-[10px] text-cyan-400">GEOGRAPHIC ORIGIN</span>
+                    <p class="text-cyan-200">📍 ${item.origin || 'Unknown Sector'}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-quantum-dark border border-cyan-500/30 space-y-1">
+                    <span class="text-[10px] text-cyan-400">TIMESTAMP & CASES</span>
+                    <p class="text-cyan-300">${item.date} | ${item.caseIds.join(', ')}</p>
+                </div>
+                <div class="p-3 rounded-xl bg-quantum-dark border border-cyan-500/30 space-y-1">
+                    <span class="text-[10px] text-cyan-400">INVESTIGATION NOTES</span>
+                    <p class="text-cyan-200 leading-relaxed text-[11px]">${item.desc}</p>
+                </div>
+            `;
+            showToast(`✨ Selected "${item.title}".`);
+        }
+
+        function closeInspector() {
+            document.getElementById('inspector-panel').classList.add('translate-x-[115%]');
+            selectedNodeId = null;
+            renderFilecaseList();
+            build3DNodes();
+        }
+
+        function toggleNodePin() { showToast("📌 Node pinned to spatial grid."); }
+
+        // EZ Upload & Website Link Ingestion
+        function openEZUploadModal() { document.getElementById('ez-upload-modal').classList.remove('hidden'); }
+        function closeEZUploadModal() { document.getElementById('ez-upload-modal').classList.add('hidden'); }
+
+        function handleFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const name = file.name;
+            const ext = name.split('.').pop().toLowerCase();
+            
+            let type = 'image';
+            if (['mp4', 'mov', 'webm'].includes(ext)) { type = 'video'; }
+            else if (['mp3', 'wav', 'ogg'].includes(ext)) { type = 'audio'; }
+            else if (['html', 'htm'].includes(ext)) { type = 'html'; }
+
+            const mockUrl = URL.createObjectURL(file);
+            document.getElementById('upload-title').value = name;
+            document.getElementById('upload-type').value = type;
+            document.getElementById('upload-url').value = mockUrl;
+            document.getElementById('upload-desc').value = `Ingested file: ${name} (${(file.size/1024).toFixed(1)} KB).`;
+            showToast(`✨ File "${name}" ingested!`);
+        }
+
+        function submitUploadedFile(e) {
+            e.preventDefault();
+            const title = document.getElementById('upload-title').value;
+            const caseCheckboxes = document.querySelectorAll('input[name="cases"]:checked');
+            const caseIds = Array.from(caseCheckboxes).map(cb => cb.value);
+            if (caseIds.length === 0) caseIds.push("Alpha");
+
+            const type = document.getElementById('upload-type').value;
+            const url = document.getElementById('upload-url').value || 'https://placehold.co/600x400/0f172a/06b6d4?text=Portal';
+            const desc = document.getElementById('upload-desc').value;
+
+            const caseColors = { Alpha: 0x06b6d4, Omega: 0xa855f7, Rupture: 0x10b981 };
+
+            filecaseData.push({
+                id: filecaseData.length + 1,
+                title,
+                caseIds,
+                type: type === 'website' ? 'website' : type,
+                url,
+                tags: `#${caseIds[0].toLowerCase()} #${type}`,
+                date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                desc,
+                origin: "User Ingestion Node",
+                geo: { x: (Math.random()-0.5)*3.0, y: (Math.random()-0.5)*2.0, z: (Math.random()-0.5)*3.0 },
+                color: caseColors[caseIds[0]] || 0x06b6d4,
+                pos: { x: (Math.random()-0.5)*5.0, y: (Math.random()-0.5)*5.0, z: (Math.random()-0.5)*5.0 }
+            });
+
+            renderFilecaseList();
+            build3DNodes();
+            closeEZUploadModal();
+            showToast(`✨ Successfully spawned "${title}" into 3D cosmos!`);
+            e.target.reset();
+        }
+
+        // Add Text Note Modals
+        function openAddTextNodeModal() { document.getElementById('text-node-modal').classList.remove('hidden'); }
+        function closeAddTextNodeModal() { document.getElementById('text-node-modal').classList.add('hidden'); }
+
+        function submitTextNode(e) {
+            e.preventDefault();
+            const title = document.getElementById('text-node-title').value;
+            const caseCheckboxes = document.querySelectorAll('input[name="cases-txt"]:checked');
+            const caseIds = Array.from(caseCheckboxes).map(cb => cb.value);
+            if (caseIds.length === 0) caseIds.push("Alpha");
+            const content = document.getElementById('text-node-content').value;
+
+            filecaseData.push({
+                id: filecaseData.length + 1,
+                title,
+                caseIds,
+                type: 'text',
+                content,
+                tags: `#text #${caseIds[0].toLowerCase()}`,
+                date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                desc: content,
+                origin: "Inspector Holo Desk",
+                geo: { x: (Math.random()-0.5)*3.0, y: (Math.random()-0.5)*2.0, z: (Math.random()-0.5)*3.0 },
+                color: 0x10b981,
+                pos: { x: (Math.random()-0.5)*4.5, y: (Math.random()-0.5)*4.5, z: (Math.random()-0.5)*4.5 }
+            });
+
+            renderFilecaseList();
+            build3DNodes();
+            closeAddTextNodeModal();
+            showToast(`📝 Text note added!`);
+            e.target.reset();
+        }
+
+        // Settings Modal
+        function openSettingsModal() { document.getElementById('settings-modal').classList.remove('hidden'); }
+        function closeSettingsModal() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+        // Download Whole Office HTML Export
+        function downloadOfficeHTML() {
+            const htmlContent = document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Quantum_Holo_Office_Backup.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast("💾 Office successfully downloaded as standalone HTML.");
+        }
+
+        function reconstructNodeAI() {
+            if (!selectedNodeId) return;
+            const item = filecaseData.find(e => e.id === selectedNodeId);
+            showToast("✨ AI Deep Scan verified for " + item.title);
+            item.desc += " [AI DEEP SCAN VERIFIED]";
+            selectFilecaseNode(selectedNodeId);
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.remove('translate-y-32');
+            setTimeout(() => t.classList.add('translate-y-32'), 3200);
+        }
+
+        window.onload = function() {
+            initThreeJS();
+            renderFilecaseList();
+        };
+    </script>
+</body>
+</html>
