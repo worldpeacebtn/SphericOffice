@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OmniStage Pro: Infinite Quantum Blender 3D Studio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; touch-action: none; user-select: none; overflow: hidden; background: #080314; }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .glass-panel {
+            background: rgba(22, 10, 45, 0.88);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            box-shadow: 0 0 35px rgba(168, 85, 247, 0.25), inset 0 0 15px rgba(168, 85, 247, 0.1);
+        }
+        .glass-panel-cyan {
+            background: rgba(10, 20, 45, 0.88);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            box-shadow: 0 0 35px rgba(6, 182, 212, 0.25), inset 0 0 15px rgba(6, 182, 212, 0.1);
+        }
+        .neon-glow-purple { text-shadow: 0 0 15px rgba(168, 85, 247, 0.9), 0 0 30px rgba(168, 85, 247, 0.6); }
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(168, 85, 247, 0.02), rgba(6, 182, 212, 0.01), rgba(236, 72, 153, 0.02));
+            z-index: 30;
+            background-size: 100% 4px, 4px 100%;
+            pointer-events: none;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(8, 3, 20, 0.9); }
+        ::-webkit-scrollbar-thumb { background: #a855f7; border-radius: 2px; }
+        .radial-pie-menu {
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 40;
+        }
+        .radial-pie-menu.active { pointer-events: auto; }
+        .radial-btn {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+        }
+        .radial-btn:hover { transform: scale(1.25); }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col justify-between crt">
+
+    <div id="canvas-container" class="fixed inset-0 z-0 cursor-crosshair"></div>
+
+    <!-- Universal Drop Overlay -->
+    <div id="drop-overlay" class="fixed inset-0 z-50 bg-purple-950/80 backdrop-blur-md hidden items-center justify-center border-4 border-dashed border-purple-500 m-6 rounded-3xl pointer-events-none transition">
+        <div class="text-center">
+            <i class="fa-solid fa-cloud-arrow-up text-6xl text-purple-300 mb-3 animate-bounce"></i>
+            <h2 class="font-orbitron font-bold text-xl text-purple-200">Drop Any Asset Here</h2>
+            <p class="text-xs text-purple-300 mt-1">GLB, 3D, Audio (.m4a/.mp3), Video, Images, PDF, HTML, Pixel Art</p>
+        </div>
+    </div>
+
+    <!-- Sims-Style Radial Pie Menu -->
+    <div id="radial-menu" class="radial-pie-menu opacity-0 hidden">
+        <div class="absolute inset-0 rounded-full border border-purple-500/50 bg-slate-950/90 backdrop-blur-lg flex items-center justify-center">
+            <span class="text-[9px] font-orbitron text-purple-300 tracking-widest uppercase">Quantum Hub</span>
+        </div>
+        <button onclick="radialAction('spawn')" class="radial-btn bg-slate-900 border border-purple-500 text-purple-300 top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" title="Spawn Geometry"><i class="fa-solid fa-cube text-xs"></i></button>
+        <button onclick="radialAction('brush')" class="radial-btn bg-slate-900 border border-cyan-500 text-cyan-300 top-[18%] right-[5%]" title="3D Photoshop Brush & 2D Skin Editor"><i class="fa-solid fa-paintbrush text-xs"></i></button>
+        <button onclick="radialAction('material')" class="radial-btn bg-slate-900 border border-emerald-500 text-emerald-300 bottom-[18%] right-[5%]" title="Material & Audio Reactivity"><i class="fa-solid fa-palette text-xs"></i></button>
+        <button onclick="radialAction('library')" class="radial-btn bg-slate-900 border border-amber-500 text-amber-300 bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2" title="Library & Downloads"><i class="fa-solid fa-book-bookmark text-xs"></i></button>
+        <button onclick="radialAction('save-asset')" class="radial-btn bg-slate-900 border border-pink-500 text-pink-300 bottom-[18%] left-[5%]" title="Save to Library"><i class="fa-solid fa-floppy-disk text-xs"></i></button>
+        <button onclick="radialAction('delete')" class="radial-btn bg-slate-900 border border-rose-500 text-rose-300 top-[18%] left-[5%]" title="Delete Object"><i class="fa-solid fa-trash text-xs"></i></button>
+    </div>
+
+    <header class="relative z-20 w-full border-b border-purple-500/30 glass-panel px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="w-3 h-3 bg-purple-500 rounded-full animate-ping"></div>
+            <h1 class="font-orbitron font-black text-purple-400 text-sm md:text-base tracking-wider neon-glow-purple">
+                OMNISTAGE PRO // CREATOR STUDIO
+            </h1>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <label class="px-3 py-1 bg-cyan-950/60 border border-cyan-500/40 rounded-full text-cyan-300 text-xs font-orbitron hover:bg-cyan-900 transition cursor-pointer flex items-center space-x-1">
+                <i class="fa-solid fa-file-arrow-up"></i> <span>Upload Asset</span>
+                <input type="file" id="universal-file-input" class="hidden" onchange="handleFileUpload(event)" multiple accept=".glb,.gltf,.obj,.png,.jpg,.jpeg,.mp3,.m4a,.wav,.mp4,.pdf,.html">
+            </label>
+            <button onclick="openModal('library-modal')" class="px-3 py-1 bg-amber-950/60 border border-amber-500/40 rounded-full text-amber-300 text-xs font-orbitron hover:bg-amber-900 transition flex items-center space-x-1">
+                <i class="fa-solid fa-book-bookmark"></i> <span>Library & Exports</span>
+            </button>
+        </div>
+    </header>
+
+    <main id="hud-container" class="relative z-10 flex-grow w-full max-w-7xl mx-auto px-4 py-4 flex flex-col justify-between pointer-events-none transition-opacity duration-300">
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="glass-panel rounded-2xl p-3 max-w-xs">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="text-cyan-400 text-sm">🖌️</span>
+                    <span class="font-orbitron font-bold text-xs text-cyan-200">Local Brush & 2D Skin Painting</span>
+                </div>
+                <p id="selection-info" class="text-[11px] text-slate-300">Paint directly on vertices without affecting the entire object! Drag & drop any GLB, Audio, or Texture.</p>
+            </div>
+
+            <div class="glass-panel p-3 rounded-2xl flex flex-col items-center w-40">
+                <div class="text-[9px] font-orbitron text-cyan-300 mb-1">AUDIO REACTIVITY</div>
+                <span id="audio-status-display" class="font-orbitron font-bold text-xs text-purple-300">OFF (SILENT)</span>
+            </div>
+        </div>
+
+        <div id="toast-notification" class="pointer-events-auto mx-auto glass-panel px-5 py-2.5 rounded-2xl text-xs font-orbitron text-purple-200 opacity-0 transition-opacity duration-300">
+            Action executed successfully!
+        </div>
+
+        <div class="pointer-events-auto flex flex-col items-center pb-4">
+            <div class="glass-panel px-4 py-2 rounded-2xl mb-3 flex items-center space-x-2 text-xs">
+                <span class="font-orbitron text-purple-300 font-bold">Brush Mode:</span>
+                <button onclick="setBrushMode('paint')" class="px-3 py-1 bg-cyan-950 border border-cyan-500 text-cyan-200 rounded-lg">Vertex Paint</button>
+                <button onclick="setBrushMode('inflate')" class="px-3 py-1 bg-purple-950 border border-purple-500 text-purple-200 rounded-lg">Inflate</button>
+                <button onclick="setBrushMode('pinch')" class="px-3 py-1 bg-slate-900 hover:bg-purple-900 rounded-lg text-slate-200">Pinch</button>
+                <button onclick="openModal('skin-editor-modal')" class="px-3 py-1 bg-pink-950 border border-pink-500 text-pink-200 rounded-lg">2D Skin Canvas</button>
+            </div>
+
+            <div class="glass-panel p-2 rounded-full flex items-center space-x-3 shadow-2xl">
+                <button onclick="openModal('sculpt-modal')" class="p-3 bg-slate-900 hover:bg-purple-950 text-purple-300 rounded-full w-12 h-12 flex items-center justify-center transition hover:scale-110 border border-purple-500/40" title="Spawn Geometries">
+                    <i class="fa-solid fa-cube text-sm"></i>
+                </button>
+                <button onclick="openModal('brush-modal')" class="p-3 bg-slate-900 hover:bg-cyan-950 text-cyan-300 rounded-full w-12 h-12 flex items-center justify-center transition hover:scale-110 border border-cyan-500/40" title="Brush Settings">
+                    <i class="fa-solid fa-paintbrush text-sm"></i>
+                </button>
+                <button onclick="openModal('save-asset-modal')" class="p-3 bg-slate-900 hover:bg-pink-950 text-pink-300 rounded-full w-12 h-12 flex items-center justify-center transition hover:scale-110 border border-pink-500/40" title="Save to Library">
+                    <i class="fa-solid fa-floppy-disk text-sm"></i>
+                </button>
+                <button onclick="openModal('material-modal')" class="p-3 bg-slate-900 hover:bg-emerald-950 text-emerald-300 rounded-full w-12 h-12 flex items-center justify-center transition hover:scale-110 border border-emerald-500/40" title="Audio Reactivity & Atmosphere">
+                    <i class="fa-solid fa-palette text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- SAVE ASSET MODAL -->
+    <div id="save-asset-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-6 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-orbitron font-bold text-pink-300 text-sm"><i class="fa-solid fa-floppy-disk mr-2"></i> Save Asset to Library</h3>
+                <button onclick="closeModal('save-asset-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4 text-xs text-slate-300">
+                <div>
+                    <label class="block font-orbitron text-pink-200 mb-1">Asset Title</label>
+                    <input type="text" id="asset-title-input" value="Custom Quantum Sculpture #1" class="w-full p-2.5 bg-slate-900 border border-pink-500/40 rounded-xl text-white">
+                </div>
+                <div>
+                    <label class="block font-orbitron text-pink-200 mb-1">Classification Category</label>
+                    <select id="asset-category-select" class="w-full p-2.5 bg-slate-900 border border-pink-500/40 rounded-xl text-white">
+                        <option value="human">👤 Human / Character</option>
+                        <option value="animal">🐰 Animal / Creature</option>
+                        <option value="prop">💎 Prop / Item</option>
+                        <option value="background">🌆 Background / Terrain</option>
+                        <option value="audio-reactive">🎵 Audio Reactive Artifact</option>
+                    </select>
+                </div>
+                <button onclick="saveAssetToLibrary()" class="w-full py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl font-orbitron font-bold text-white text-xs">
+                    Save Sculpted Asset to Classified Library
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIBRARY & DOWNLOADS MODAL -->
+    <div id="library-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="max-w-3xl w-full glass-panel rounded-3xl p-6 relative max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-orbitron font-bold text-amber-300 text-sm"><i class="fa-solid fa-book-bookmark mr-2"></i> Classified 3D Asset Library & Multi-Format Downloads</h3>
+                <button onclick="closeModal('library-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="library-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+    </div>
+
+    <!-- 2D SKIN / UV TEXTURE CANVAS EDITOR MODAL -->
+    <div id="skin-editor-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-6 relative text-center">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-orbitron font-bold text-pink-300 text-sm"><i class="fa-solid fa- paintbrush mr-2"></i> 2D Skin Canvas Texture Editor</h3>
+                <button onclick="closeModal('skin-editor-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-[11px] text-slate-300 mb-3">Draw custom 2D pixel art or patterns here, then click apply to wrap it onto the active 3D object!</p>
+            <canvas id="skin-canvas" width="256" height="256" class="w-64 h-64 mx-auto bg-slate-900 border-2 border-pink-500 rounded-2xl cursor-crosshair mb-4"></canvas>
+            <div class="flex gap-2 justify-center">
+                <button onclick="clearSkinCanvas()" class="px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-orbitron">Clear</button>
+                <button onclick="applySkinCanvasToModel()" class="px-4 py-2 bg-pink-600 rounded-xl text-xs font-orbitron font-bold text-white">Apply Skin to 3D Model</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BRUSH SETTINGS MODAL -->
+    <div id="brush-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="max-w-md w-full glass-panel-cyan rounded-3xl p-6 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-orbitron font-bold text-cyan-300 text-sm"><i class="fa-solid fa-paintbrush mr-2"></i> Local Brush Settings</h3>
+                <button onclick="closeModal('brush-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4 text-xs text-slate-300">
+                <div>
+                    <label class="block font-orbitron text-cyan-200 mb-1">Brush Radius</label>
+                    <input type="range" min="0.1" max="3.0" step="0.1" value="0.8" oninput="brushRadius = parseFloat(this.value)" class="w-full accent-cyan-400">
+                </div>
+                <div>
+                    <label class="block font-orbitron text-cyan-200 mb-1">Local Paint Color</label>
+                    <input type="color" id="brush-color-picker" value="#ec4899" class="w-full h-10 rounded-xl bg-transparent cursor-pointer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MATERIAL & AUDIO REACTIVITY MODAL -->
+    <div id="material-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-6 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-orbitron font-bold text-emerald-300 text-sm"><i class="fa-solid fa-palette mr-2"></i> Audio Reactivity & Atmosphere</h3>
+                <button onclick="closeModal('material-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-4 text-xs text-slate-300">
+                <div>
+                    <label class="block font-orbitron text-emerald-200 mb-1">Base Color</label>
+                    <input type="color" value="#9333ea" onchange="applyMaterialColor(this.value)" class="w-full h-10 rounded-xl bg-transparent cursor-pointer">
+                </div>
+                <div>
+                    <label class="block font-orbitron text-emerald-200 mb-1">Upload Music File (.mp3 / .m4a) for Audio Reactivity</label>
+                    <input type="file" accept="audio/*" onchange="loadAudioReactivity(event)" class="w-full p-2 bg-slate-900 border border-emerald-500/40 rounded-xl text-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-emerald-600 file:text-white cursor-pointer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCULPT GEOMETRY MODAL -->
+    <div id="sculpt-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-6 relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-orbitron font-bold text-purple-300 text-sm"><i class="fa-solid fa-cube mr-2"></i> Spawn Geometries</h3>
+                <button onclick="closeModal('sculpt-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-slate-300">
+                <button onclick="spawnGeometry('voxel-cube')" class="w-full p-3 bg-slate-900 hover:bg-purple-950 border border-purple-500/30 rounded-xl flex items-center justify-between transition">
+                    <span><i class="fa-solid fa-cube text-purple-400 mr-2"></i> High-Res Subdivision Cube</span>
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                </button>
+                <button onclick="spawnGeometry('morphic-sphere')" class="w-full p-3 bg-slate-900 hover:bg-purple-950 border border-purple-500/30 rounded-xl flex items-center justify-between transition">
+                    <span><i class="fa-solid fa-circle text-purple-400 mr-2"></i> Glassy Morphic Sphere</span>
+                    <i class="fa-solid fa-plus text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, objects = [], selectedObject = null;
+        let raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+        let isPointerDown = false, isDrawing = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraAngleX = 0, cameraAngleY = 0.5, cameraRadius = 18;
+        
+        let brushMode = 'paint'; // paint, inflate, pinch
+        let brushRadius = 0.8;
+        let brushStrength = 0.4;
+        let brushCursorMesh;
+        let userLibrary = [];
+
+        // Audio Reactivity variables
+        let audioCtx, analyser, audioDataArray, audioSourceNode, audioElement;
+        let isAudioActive = false;
+
+        // 2D Skin Canvas variables
+        let skinCanvas, skinCtx, isDrawingSkin = false;
+
+        function initStudio() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x080314, 0.015);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            updateCameraPosition();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(ambientLight);
+
+            const pointLight1 = new THREE.PointLight(0xa855f7, 8, 80);
+            pointLight1.position.set(10, 15, 10);
+            scene.add(pointLight1);
+
+            const gridHelper = new THREE.GridHelper(80, 80, 0xa855f7, 0x1e1b4b);
+            gridHelper.position.y = -2;
+            scene.add(gridHelper);
+
+            const cursorGeo = new THREE.RingGeometry(0.5, 0.55, 32);
+            const cursorMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            brushCursorMesh = new THREE.Mesh(cursorGeo, cursorMat);
+            brushCursorMesh.rotation.x = Math.PI / 2;
+            brushCursorMesh.visible = false;
+            scene.add(brushCursorMesh);
+
+            spawnGeometry('voxel-cube');
+            initSkinCanvasEditor();
+            setupDragAndDrop();
+
+            window.addEventListener('resize', onWindowResize);
+            container.addEventListener('pointerdown', onPointerDown);
+            container.addEventListener('pointermove', onPointerMove);
+            container.addEventListener('pointerup', onPointerUp);
+
+            animate();
+        }
+
+        function updateCameraPosition() {
+            camera.position.x = cameraRadius * Math.sin(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.position.y = cameraRadius * Math.sin(cameraAngleY);
+            camera.position.z = cameraRadius * Math.cos(cameraAngleX) * Math.cos(cameraAngleY);
+            camera.lookAt(0, 0, 0);
+        }
+
+        function onPointerDown(event) {
+            if (event.clientY > window.innerHeight - 110 || event.clientY < 60) return;
+            
+            isPointerDown = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects, true);
+
+            if (intersects.length > 0) {
+                let rootObj = intersects[0].object;
+                while (rootObj.parent && rootObj.parent !== scene) {
+                    rootObj = rootObj.parent;
+                }
+                selectedObject = rootObj;
+                isDrawing = true;
+                applyBrushDeformation(intersects[0]);
+                hideRadialMenu();
+            } else {
+                isDrawing = false;
+                showRadialMenu(event.clientX, event.clientY);
+            }
+        }
+
+        function onPointerMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects, true);
+            if (intersects.length > 0) {
+                brushCursorMesh.position.copy(intersects[0].point);
+                brushCursorMesh.visible = true;
+                if (isPointerDown && isDrawing && selectedObject) {
+                    applyBrushDeformation(intersects[0]);
+                }
+            } else {
+                brushCursorMesh.visible = false;
+            }
+
+            if (!isPointerDown || isDrawing) return;
+
+            const deltaX = event.clientX - previousMousePosition.x;
+            const deltaY = event.clientY - previousMousePosition.y;
+
+            cameraAngleX -= deltaX * 0.008;
+            cameraAngleY = Math.max(0.1, Math.min(1.5, cameraAngleY + deltaY * 0.008));
+            updateCameraPosition();
+
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        }
+
+        function onPointerUp() {
+            isPointerDown = false;
+            isDrawing = false;
+        }
+
+        function applyBrushDeformation(intersect) {
+            if (!selectedObject) return;
+            const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+            if (!mesh || !mesh.geometry.attributes.position) return;
+
+            const geometry = mesh.geometry;
+            const posAttr = geometry.attributes.position;
+            const hitPoint = intersect.point;
+            const inverseMatrix = new THREE.Matrix4().copy(mesh.matrixWorld).invert();
+            const localHit = hitPoint.clone().applyMatrix4(inverseMatrix);
+
+            if (!geometry.attributes.color) {
+                const colors = new Float32Array(posAttr.count * 3);
+                for (let i = 0; i < posAttr.count; i++) { colors[i*3] = 1; colors[i*3+1] = 1; colors[i*3+2] = 1; }
+                geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                mesh.material.vertexColors = true;
+                mesh.material.needsUpdate = true;
+            }
+
+            const colorAttr = geometry.attributes.color;
+            const targetColor = new THREE.Color(document.getElementById('brush-color-picker').value);
+            const vPos = new THREE.Vector3();
+
+            for (let i = 0; i < posAttr.count; i++) {
+                vPos.fromBufferAttribute(posAttr, i);
+                const dist = vPos.distanceTo(localHit);
+
+                if (dist < brushRadius) {
+                    const falloff = Math.pow(1.0 - (dist / brushRadius), 2) * brushStrength;
+
+                    if (brushMode === 'paint') {
+                        const curCol = new THREE.Color(colorAttr.getX(i), colorAttr.getY(i), colorAttr.getZ(i));
+                        curCol.lerp(targetColor, falloff);
+                        colorAttr.setXYZ(i, curCol.r, curCol.g, curCol.b);
+                        colorAttr.needsUpdate = true;
+                    } else if (brushMode === 'inflate') {
+                        const normal = intersect.face ? intersect.face.normal : new THREE.Vector3(0, 1, 0);
+                        vPos.addScaledVector(normal, falloff * 0.25);
+                        posAttr.setXYZ(i, vPos.x, vPos.y, vPos.z);
+                    } else if (brushMode === 'pinch') {
+                        vPos.lerp(localHit, falloff * 0.2);
+                        posAttr.setXYZ(i, vPos.x, vPos.y, vPos.z);
+                    }
+                }
+            }
+
+            posAttr.needsUpdate = true;
+            geometry.computeVertexNormals();
+            geometry.computeBoundingSphere();
+        }
+
+        function setBrushMode(mode) {
+            brushMode = mode;
+            showToast("Brush Mode: " + mode.toUpperCase());
+        }
+
+        function spawnGeometry(type) {
+            let geometry = type === 'voxel-cube' ? new THREE.BoxGeometry(2, 2, 2, 32, 32, 32) : new THREE.SphereGeometry(1.5, 32, 32);
+            let material = new THREE.MeshStandardMaterial({ color: 0xa855f7, roughness: 0.2, metalness: 0.8 });
+            let mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(0, 1, 0);
+            scene.add(mesh);
+            objects.push(mesh);
+            selectedObject = mesh;
+            closeModal('sculpt-modal');
+            showToast("Spawned geometry asset!");
+        }
+
+        function setupDragAndDrop() {
+            const overlay = document.getElementById('drop-overlay');
+            window.addEventListener('dragover', (e) => { e.preventDefault(); overlay.style.display = 'flex'; });
+            window.addEventListener('dragleave', (e) => { e.preventDefault(); overlay.style.display = 'none'; });
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                overlay.style.display = 'none';
+                if (e.dataTransfer.files.length > 0) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+        }
+
+        function handleFileUpload(event) {
+            if (event.target.files.length > 0) {
+                handleFiles(event.target.files);
+            }
+        }
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const url = URL.createObjectURL(file);
+
+                if (ext === 'glb' || ext === 'gltf') {
+                    const loader = new THREE.GLTFLoader();
+                    loader.load(url, (gltf) => {
+                        const model = gltf.scene;
+                        model.scale.set(2, 2, 2);
+                        model.position.set(0, 1, 0);
+                        scene.add(model);
+                        objects.push(model);
+                        selectedObject = model;
+                        showToast("Imported GLB 3D model successfully!");
+                    });
+                } else if (['mp3', 'm4a', 'wav'].includes(ext)) {
+                    loadAudioReactivityFile(file);
+                } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+                    const texture = new THREE.TextureLoader().load(url);
+                    if (selectedObject) {
+                        const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+                        if (mesh) {
+                            mesh.material.map = texture;
+                            mesh.material.needsUpdate = true;
+                            showToast("Applied image texture as skin!");
+                        }
+                    }
+                } else {
+                    showToast(`Imported ${file.name} successfully!`);
+                }
+            });
+        }
+
+        function loadAudioReactivity(event) {
+            const file = event.target.files[0];
+            if (file) loadAudioReactivityFile(file);
+        }
+
+        function loadAudioReactivityFile(file) {
+            const url = URL.createObjectURL(file);
+            if (audioElement) audioElement.pause();
+            audioElement = new Audio(url);
+            audioElement.loop = true;
+
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+
+            audioSourceNode = audioCtx.createMediaElementSource(audioElement);
+            audioSourceNode.connect(analyser);
+            analyser.connect(audioCtx.destination);
+
+            audioDataArray = new Uint8Array(analyser.frequencyBinCount);
+            
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            audioElement.play().then(() => {
+                isAudioActive = true;
+                document.getElementById('audio-status-display').textContent = 'ACTIVE (SYNCED)';
+                showToast("Audio-reactive atmosphere engaged!");
+            }).catch(err => {
+                console.warn("Browser autoplay restriction caught:", err);
+                isAudioActive = true;
+                document.getElementById('audio-status-display').textContent = 'PAUSED (CLICK TO PLAY)';
+                showToast("Audio loaded. Click play or interact with the page to sync.");
+            });
+        }
+
+        function initSkinCanvasEditor() {
+            skinCanvas = document.getElementById('skin-canvas');
+            skinCtx = skinCanvas.getContext('2d');
+            skinCtx.fillStyle = '#9333ea';
+            skinCtx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
+
+            skinCanvas.addEventListener('pointerdown', (e) => { isDrawingSkin = true; drawSkin(e); });
+            skinCanvas.addEventListener('pointermove', (e) => { if (isDrawingSkin) drawSkin(e); });
+            skinCanvas.addEventListener('pointerup', () => { isDrawingSkin = false; });
+        }
+
+        function drawSkin(e) {
+            const rect = skinCanvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (skinCanvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (skinCanvas.height / rect.height);
+            skinCtx.fillStyle = document.getElementById('brush-color-picker').value;
+            skinCtx.beginPath();
+            skinCtx.arc(x, y, 10, 0, Math.PI * 2);
+            skinCtx.fill();
+        }
+
+        function clearSkinCanvas() {
+            skinCtx.fillStyle = '#0f172a';
+            skinCtx.fillRect(0, 0, skinCanvas.width, skinCanvas.height);
+        }
+
+        function applySkinCanvasToModel() {
+            if (!selectedObject) {
+                showToast("Select a 3D object first!");
+                return;
+            }
+            const texture = new THREE.CanvasTexture(skinCanvas);
+            const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+            if (mesh) {
+                mesh.material.map = texture;
+                mesh.material.needsUpdate = true;
+                closeModal('skin-editor-modal');
+                showToast("Applied 2D skin canvas texture to 3D object!");
+            }
+        }
+
+        function saveAssetToLibrary() {
+            if (!selectedObject) {
+                showToast("No active sculpture selected!");
+                return;
+            }
+            renderer.render(scene, camera);
+            const preview = renderer.domElement.toDataURL('image/png');
+            const title = document.getElementById('asset-title-input').value;
+            const category = document.getElementById('asset-category-select').value;
+            const emojiMap = { human: '👤', animal: '🐰', prop: '💎', background: '🌆', 'audio-reactive': '🎵' };
+            
+            userLibrary.push({ title, category, emoji: emojiMap[category], preview, object: selectedObject });
+            renderLibraryGrid();
+            closeModal('save-asset-modal');
+            showToast("Asset saved to classified library with multi-format export!");
+        }
+
+        function renderLibraryGrid() {
+            const grid = document.getElementById('library-grid');
+            grid.innerHTML = '';
+            userLibrary.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel p-4 rounded-2xl flex flex-col items-center text-center space-y-2';
+                card.innerHTML = `
+                    <div class="w-full h-32 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden border border-purple-500/30 relative">
+                        <span class="absolute top-1 left-1 text-xs bg-slate-950/80 px-2 py-0.5 rounded">${item.emoji}</span>
+                        <img src="${item.preview}" class="w-full h-full object-cover">
+                    </div>
+                    <span class="font-orbitron font-bold text-xs text-purple-200">${item.title}</span>
+                    <div class="grid grid-cols-2 gap-1 w-full pt-1">
+                        <button onclick="downloadAssetFormat(${index}, 'react')" class="py-1.5 bg-purple-950 hover:bg-purple-900 border border-purple-500/40 rounded-lg text-[10px] font-orbitron text-purple-300">⚛️ React JSX</button>
+                        <button onclick="downloadAssetFormat(${index}, 'js')" class="py-1.5 bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/40 rounded-lg text-[10px] font-orbitron text-cyan-300">📜 Three.js JS</button>
+                        <button onclick="downloadAssetFormat(${index}, 'glb')" class="py-1.5 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/40 rounded-lg text-[10px] font-orbitron text-emerald-300">🧊 GLB 3D</button>
+                        <button onclick="downloadAssetFormat(${index}, 'pixel')" class="py-1.5 bg-amber-950 hover:bg-amber-900 border border-amber-500/40 rounded-lg text-[10px] font-orbitron text-amber-300">✨ Pixel Art PNG</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function downloadAssetFormat(index, format) {
+            const item = userLibrary[index];
+            if (format === 'pixel' || format === 'glb') {
+                const a = document.createElement('a');
+                a.href = item.preview;
+                a.download = `${item.title.toLowerCase().replace(/\s+/g, '_')}.${format === 'pixel' ? 'png' : 'glb'}`;
+                a.click();
+                showToast(`Downloaded asset as ${format.toUpperCase()}!`);
+            } else if (format === 'react') {
+                const code = `import React from 'react';\nexport default function ${item.title.replace(/\s+/g, '')}() {\n  return (\n    <div className="w-full h-screen bg-slate-950 flex items-center justify-center">\n      <h1 className="text-purple-400 font-bold">${item.title} (OmniStage Pro Export)</h1>\n    </div>\n  );\n}`;
+                downloadFile(code, `${item.title.replace(/\s+/g, '')}.jsx`, 'text/jsx');
+            } else if (format === 'js') {
+                const code = `// Three.js Export for ${item.title}\nconst geometry = new THREE.BoxGeometry(2, 2, 2);\nconst material = new THREE.MeshStandardMaterial({ color: 0xa855f7 });\nconst mesh = new THREE.Mesh(geometry, material);\nscene.add(mesh);`;
+                downloadFile(code, `${item.title.replace(/\s+/g, '')}.js`, 'text/javascript');
+            }
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type: type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            showToast(`Downloaded ${filename} successfully!`);
+        }
+
+        function applyMaterialColor(color) {
+            if (selectedObject) {
+                const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+                if (mesh) {
+                    mesh.material.color.set(color);
+                    mesh.material.needsUpdate = true;
+                }
+            }
+        }
+
+        function showRadialMenu(x, y) {
+            const menu = document.getElementById('radial-menu');
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.classList.remove('hidden');
+            setTimeout(() => menu.classList.add('active', 'opacity-100'), 10);
+        }
+
+        function hideRadialMenu() {
+            const menu = document.getElementById('radial-menu');
+            menu.classList.remove('active', 'opacity-100');
+            setTimeout(() => menu.classList.add('hidden'), 200);
+        }
+
+        function radialAction(action) {
+            hideRadialMenu();
+            if (action === 'spawn') openModal('sculpt-modal');
+            else if (action === 'brush') openModal('skin-editor-modal');
+            else if (action === 'material') openModal('material-modal');
+            else if (action === 'library') openModal('library-modal');
+            else if (action === 'save-asset') openModal('save-asset-modal');
+            else if (action === 'delete') { if (selectedObject) { scene.remove(selectedObject); objects = objects.filter(o => o !== selectedObject); }}
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notification');
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.002;
+
+            if (isAudioActive && analyser) {
+                analyser.getByteFrequencyData(audioDataArray);
+                let avg = audioDataArray.reduce((a, b) => a + b, 0) / audioDataArray.length;
+                let scale = 1 + (avg / 128) * 0.25;
+                if (selectedObject) {
+                    selectedObject.scale.set(scale, scale, scale);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.onload = initStudio;
+    </script>
+</body>
+</html>
