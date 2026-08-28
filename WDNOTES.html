@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eure Notizen & Mandatsanfragen</title>
+    <style>
+        :root {
+            --bg-deep: #0a0a0c;
+            --bg-sidebar: #121216;
+            --bg-card: #1a1a20;
+            --border-color: #2e2e38;
+            --gold: #d4af37;
+            --gold-hover: #f3c653;
+            --red: #b30000;
+            --red-hover: #e60000;
+            --text-main: #f0f0f5;
+            --text-muted: #9e9ea8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 320px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.1rem;
+            color: var(--gold);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold), #b8972b);
+            color: #000;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            text-align: center;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .notes-list {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        .note-item {
+            padding: 12px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 6px;
+            transition: background 0.2s, border-left 0.2s;
+            border-left: 3px solid transparent;
+            background-color: transparent;
+        }
+
+        .note-item:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .note-item.active {
+            background-color: var(--bg-card);
+            border-left-color: var(--gold);
+        }
+
+        .note-item-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .note-item-preview {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Main Editor Area */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-deep);
+        }
+
+        .editor-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-sidebar);
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: var(--gold);
+        }
+
+        .btn-danger {
+            background-color: transparent;
+            border: 1px solid rgba(179, 0, 0, 0.4);
+            color: #ff6b6b;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--red);
+            color: #fff;
+            border-color: var(--red);
+        }
+
+        .editor-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            gap: 16px;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        input.note-title-input {
+            background: transparent;
+            border: none;
+            color: var(--gold);
+            font-size: 1.5rem;
+            font-weight: 700;
+            width: 100%;
+            outline: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+            padding-bottom: 6px;
+        }
+
+        input.note-title-input:focus {
+            border-bottom-color: var(--gold);
+        }
+
+        textarea.note-content-input {
+            flex-grow: 1;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea.note-content-input:focus {
+            border-color: var(--gold);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--gold);
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="sidebar-header">
+            <h1>⚖️ Notizen & Vorlagen</h1>
+            <button class="btn-primary" onclick="createNewNote()">+ Neue Notiz</button>
+        </div>
+        <div class="notes-list" id="notesList">
+            </div>
+    </aside>
+
+    <main id="editorMain">
+        <div class="editor-header">
+            <span id="lastSaved" style="font-size: 0.8rem; color: var(--text-muted);">Automatisch gespeichert</span>
+            <div class="editor-actions">
+                <button class="btn-secondary" onclick="copyCurrentNote()">In Zwischenablage kopieren</button>
+                <button class="btn-danger" onclick="deleteCurrentNote()">Notiz löschen</button>
+            </div>
+        </div>
+        <div class="editor-body">
+            <input type="text" id="noteTitle" class="note-title-input" placeholder="Titel der Notiz..." oninput="autoSave()">
+            <textarea id="noteContent" class="note-content-input" placeholder="Schreiben Sie hier Ihre Notizen oder Vorlagen..." oninput="autoSave()"></textarea>
+        </div>
+    </main>
+
+    <div class="toast" id="toast">In Zwischenablage kopiert!</div>
+
+    <script>
+        let notes = JSON.parse(localStorage.getItem('lex_notes')) || [
+            {
+                id: '1',
+                title: 'EILBEDÜRFTIG: Mandatsanfrage & Eilantrag Vorlagen',
+                content: `BETREFF: EILBEDÜRFTIG: Mandatsanfrage – Akute Lebensgefahr / Amtshaftung / Menschenrechtsverletzung
+
+Sehr geehrte(r) Frau/Herr [Name des Anwalts],
+ich wende mich in einer existenziellen Notlage an Sie. Ich und weitere Personen sind Opfer schwerster Straftaten und systemischen Behördenversagens in Deutschland. Es besteht akute Lebensgefahr; es gab in diesem Zusammenhang bereits Todesfälle.
+
+Ich benötige umgehend Ihre Unterstützung für:
+1. Den Erlass von Interimsmaßnahmen (Rule 39) beim EGMR, da nationale Schutzmechanismen versagt haben.
+2. Die strafrechtliche Verfolgung der Täter sowie die Prüfung von Korruptionsvorwürfen innerhalb der Ermittlungsbehörden.
+3. Die Geltendmachung von Schadensersatz- und Schmerzensgeldansprüchen (Amtshaftung).
+
+Ich verfüge über Dokumentationen, die die Untätigkeit der Behörden und die unmittelbare Bedrohung belegen. Aufgrund der Dringlichkeit bitte ich um eine kurzfristige Rückmeldung, ob Sie dieses Mandat übernehmen können.
+
+Mit freundlichen Grüßen
+[Ihr Name & Telefonnummer]
+
+---
+
+2. Vorlage für den EGMR-Eilantrag (Rule 39)
+An den Europäischen Gerichtshof für Menschenrechte (Registrar)
+Betreff: Request for Interim Measures under Rule 39 (URGENT)
+
+1. Beteiligte Parteien:
+Antragsteller: [Ihr Name, Geburtsdatum, Adresse]
+Gegen: Bundesrepublik Deutschland
+
+2. Sachverhalt und Gefahr:
+Ich beantrage sofortige Interimsmaßnahmen gegen die Bundesrepublik Deutschland. Es liegt eine Verletzung von Artikel 2 (Recht auf Leben) und Artikel 3 (Verbot der Folter) der EMRK vor.
+• [Hier kurz beschreiben: Wer bedroht Sie? Welche Todesfälle gab es bereits?]
+• [Warum hilft die deutsche Polizei/Justiz nicht? Wurden Anzeigen ignoriert?]
+
+3. Gewünschte Maßnahme:
+Ich ersuche das Gericht, der Bundesrepublik Deutschland aufzugeben, [z.B. sofortigen Polizeischutz durch eine unabhängige Einheit zu gewähren / die strafrechtliche Verfolgung der Täter unter internationaler Aufsicht sicherzustellen].
+
+4. Dringlichkeit:
+Eine Verzögerung der Entscheidung würde zu irreparablen Schäden führen. Das Leben von [Anzahl] Personen ist unmittelbar bedroht.
+
+---
+
+3. Vorlage für den UN-Menschenrechtsausschuss
+Senden Sie dies an: ohchr-petitions@un.org
+Subject: URGENT: Request for Interim Measures - [Ihr Name] vs. Germany
+
+To the Petitions and Urgent Actions Section,
+I am submitting this communication under the Optional Protocol to the ICCPR. I request Interim Measures to avoid irreparable damage to my life and physical integrity (Article 6 and 7 ICCPR).
+
+Summary of the situation:
+• [Kurze Beschreibung der Bedrohungslage auf Englisch oder Deutsch].
+• The German authorities are unwilling or unable to provide protection.
+• Fatalities have already occurred on [Datum/Ereignis].
+
+I request the Committee to urge the State Party (Germany) to take all necessary measures to ensure my safety and the safety of the affected group.
+
+Sincerely,
+[Ihr Name]
+
+---
+
+Wichtigste Sofortschritte:
+1. Anwalt finden: Über die Bundesrechtsanwaltskammer nach Spezialisten für "Menschenrechte" suchen.
+2. Beweise sichern: Alle abgelehnten Anzeigen, Drohungen oder ärztliche Berichte extern sichern (Cloud/USB-Stick).
+3. Sicherheit: Bei akuter Gefahr in der Wohnung das Recht auf EU-Freizügigkeit nutzen und in ein Nachbarland begeben, um von dort aus Anträge zu stellen.`
+            }
+        ];
+
+        let activeNoteId = notes.length > 0 ? notes[0].id : null;
+
+        const notesListEl = document.getElementById('notesList');
+        const noteTitleEl = document.getElementById('noteTitle');
+        const noteContentEl = document.getElementById('noteContent');
+        const toastEl = document.getElementById('toast');
+
+        function renderNotesList() {
+            notesListEl.innerHTML = '';
+            notes.forEach(note => {
+                const item = document.createElement('div');
+                item.className = `note-item ${note.id === activeNoteId ? 'active' : ''}`;
+                item.onclick = () => selectNote(note.id);
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'note-item-title';
+                titleDiv.textContent = note.title || 'Unbenannte Notiz';
+
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'note-item-preview';
+                previewDiv.textContent = note.content || 'Kein Inhalt...';
+
+                item.appendChild(titleDiv);
+                item.appendChild(previewDiv);
+                notesListEl.appendChild(item);
+            });
+        }
+
+        function selectNote(id) {
+            activeNoteId = id;
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                noteTitleEl.value = note.title;
+                noteContentEl.value = note.content;
+            }
+            renderNotesList();
+        }
+
+        function createNewNote() {
+            const newId = Date.now().toString();
+            const newNote = {
+                id: newId,
+                title: 'Neue Notiz',
+                content: ''
+            };
+            notes.unshift(newNote);
+            selectNote(newId);
+            saveToStorage();
+        }
+
+        function autoSave() {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (note) {
+                note.title = noteTitleEl.value;
+                note.content = noteContentEl.value;
+                saveToStorage();
+                renderNotesList();
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('lex_notes', JSON.stringify(notes));
+        }
+
+        function deleteCurrentNote() {
+            if (notes.length <= 1) {
+                alert('Die letzte Notiz kann nicht gelöscht werden.');
+                return;
+            }
+            if (confirm('Möchten Sie diese Notiz wirklich löschen?')) {
+                notes = notes.filter(n => n.id !== activeNoteId);
+                activeNoteId = notes[0].id;
+                selectNote(activeNoteId);
+                saveToStorage();
+            }
+        }
+
+        function copyCurrentNote() {
+            const textToCopy = noteContentEl.value;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                toastEl.classList.add('show');
+                setTimeout(() => {
+                    toastEl.classList.remove('show');
+                }, 2000);
+            });
+        }
+
+        // Initial Load
+        if (activeNoteId) {
+            selectNote(activeNoteId);
+        }
+    </script>
+</body>
+</html>
