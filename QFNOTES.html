@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>X42 Holo-Memory Table & Neural Canvas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        cyber: {
+                            neon: '#00ffcc',
+                            purple: '#b026ff',
+                            pink: '#ff007f',
+                            dark: '#030712',
+                            table: '#060d1a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .perspective-workspace {
+            perspective: 1600px;
+            transform-style: preserve-3d;
+        }
+
+        .poker-table-surface {
+            transform: rotateX(12deg) scale(0.96);
+            transform-origin: center center;
+            box-shadow: 0 40px 120px rgba(0, 255, 204, 0.18), inset 0 0 100px rgba(176, 38, 255, 0.15), 0 0 0 2px rgba(0, 255, 204, 0.3);
+            background: radial-gradient(circle at center, #08162c 0%, #040914 70%, #020408 100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: auto !important;
+        }
+
+        .flat-surface {
+            transform: none !important;
+            box-shadow: 0 20px 60px rgba(176, 38, 255, 0.2);
+        }
+
+        /* Morphic Glassy Playcard Styling */
+        .holo-card {
+            background: linear-gradient(135deg, rgba(13, 25, 45, 0.88), rgba(6, 14, 28, 0.94));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(0, 255, 204, 0.08);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto !important;
+            cursor: pointer;
+            position: absolute;
+            user-select: none;
+        }
+
+        .holo-card:hover {
+            border-color: rgba(0, 255, 204, 1);
+            box-shadow: 0 20px 50px rgba(0, 255, 204, 0.4), 0 0 20px rgba(176, 38, 255, 0.3);
+            transform: translateY(-5px) scale(1.03);
+            z-index: 100 !important;
+        }
+
+        /* Glowing Poker Suit Watermarks */
+        .poker-watermark {
+            position: absolute;
+            opacity: 0.08;
+            font-size: 8rem;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00ffcc55;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-[#030712] h-screen w-screen flex flex-col antialiased selection:bg-[#00ffcc] selection:text-black overflow-hidden">
+
+    <header class="hidden md:flex bg-[#050b14]/90 backdrop-blur-md border-b border-[#00ffcc]/20 px-6 py-3 items-center justify-between z-30 flex-shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#00ffcc]/20 to-[#b026ff]/20 border border-[#00ffcc]/50 shadow-[0_0_15px_rgba(0,255,204,0.3)]">
+                <i class="fa-solid fa-infinity text-[#00ffcc] text-lg animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="font-orbitron font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#00ffcc] via-white to-[#b026ff] text-base tracking-wider">X42 NEURONAL HOLO-TABLE</h1>
+                <p class="text-[9px] text-gray-400 font-mono tracking-widest">CYBERPUNK BLENDER CANVAS v4.5 • 2.5D INTERACTIVE</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <div class="relative w-64">
+                <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                <input type="text" id="searchInput" oninput="window.app.handleSearch(this.value)" placeholder="Search neural floating nodes..." class="w-full bg-[#081424] border border-gray-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-[#00ffcc] transition">
+            </div>
+            <button onclick="window.app.toggleViewMode()" id="viewModeBtn" class="px-3.5 py-2 rounded-xl bg-cyber-table border border-[#00ffcc]/40 text-[#00ffcc] text-xs font-mono hover:bg-[#00ffcc]/10 transition flex items-center space-x-1.5 cursor-pointer">
+                <i class="fa-solid fa-cube"></i>
+                <span id="viewModeText">2.5D Tilted</span>
+            </button>
+            <button onclick="window.app.openCaptureModal()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00ffcc] via-[#b026ff] to-[#ff007f] text-black font-extrabold text-xs font-orbitron hover:opacity-95 shadow-lg shadow-[#00ffcc]/30 flex items-center space-x-1.5 transition cursor-pointer">
+                <i class="fa-solid fa-plus"></i>
+                <span>CAPTURE NODE</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 relative flex items-center justify-center overflow-hidden perspective-workspace p-2 md:p-8" id="canvasWrapper" onclick="window.app.handleCanvasBackgroundClick(event)">
+        
+        <!-- Cyberpunk Ambient Background Glows -->
+        <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+            <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#b026ff]/10 rounded-full blur-[150px]"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-[#00ffcc]/10 rounded-full blur-[180px]"></div>
+        </div>
+
+        <!-- The Round Poker-Table Holographic Workspace Surface -->
+        <div id="pokerTableSurface" class="poker-table-surface w-full max-w-[1400px] h-[82vh] rounded-[48px] border-2 border-[#00ffcc]/40 relative overflow-hidden flex flex-col shadow-2xl">
+            
+            <!-- Center Glowing Infinity Symbol & Poker Suit Watermarks -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                <div class="text-[18rem] text-[#00ffcc] opacity-[0.03] font-orbitron font-black animate-pulse">∞</div>
+            </div>
+            <div class="poker-watermark top-10 left-12 text-[#b026ff]">♠️</div>
+            <div class="poker-watermark top-12 right-12 text-[#ff007f]">♥️</div>
+            <div class="poker-watermark bottom-10 left-16 text-[#00ffcc]">♣️</div>
+            <div class="poker-watermark bottom-12 right-16 text-purple-400">♦️</div>
+
+            <!-- Table Header Info Bar -->
+            <div class="px-6 py-4 flex items-center justify-between border-b border-[#00ffcc]/20 z-20 bg-[#060d1a]/80 backdrop-blur-md">
+                <div class="flex items-center space-x-3">
+                    <span class="inline-block w-3 h-3 rounded-full bg-[#00ffcc] animate-ping"></span>
+                    <span class="font-orbitron text-xs font-bold tracking-widest text-[#00ffcc]">HOLO-TABLE NEURONAL MESH ACTIVE</span>
+                </div>
+                <div class="flex items-center space-x-3 font-mono text-xs text-gray-400">
+                    <span>NODES: <strong id="nodeCountBadge" class="text-[#00ffcc]">0</strong></span>
+                    <span class="hidden sm:inline">• CLICK ANY CARD TO INSPECT/EDIT • CLICK OUTSIDE TO DISMISS</span>
+                </div>
+            </div>
+
+            <!-- Floating Neuronal Cards Container -->
+            <div id="floatingCardsContainer" class="flex-1 relative w-full h-full overflow-auto p-4 z-20">
+                <!-- Cards injected dynamically with floating coordinates -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="absolute inset-0 m-auto flex flex-col items-center justify-center z-10 text-center p-6 pointer-events-none hidden">
+                <div class="w-20 h-20 rounded-3xl bg-[#00ffcc]/10 border border-[#00ffcc]/40 flex items-center justify-center mb-4 text-[#00ffcc] text-2xl shadow-[0_0_30px_rgba(0,255,204,0.2)]">
+                    <i class="fa-solid fa-infinity"></i>
+                </div>
+                <h3 class="font-orbitron text-lg font-bold text-gray-200">Holo-Canvas is Clear</h3>
+                <p class="text-xs text-gray-400 max-w-sm mt-1">Tap 'Capture Node' below to pin your first holographic thought onto the quantum poker table.</p>
+            </div>
+
+        </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#050b14]/95 backdrop-blur-lg border-t border-[#00ffcc]/30 px-6 py-3 flex items-center justify-around shadow-[0_-15px_40px_rgba(0,0,0,0.9)]">
+        <button onclick="window.app.filterTag('ALL')" id="filterBtnAll" class="flex flex-col items-center text-[#00ffcc] active:scale-95 transition cursor-pointer p-1">
+            <i class="fa-solid fa-layer-group text-base"></i>
+            <span class="text-[10px] font-mono mt-1 font-bold">All Nodes</span>
+        </button>
+        <button onclick="window.app.filterTag('TRUTOPIA')" class="flex flex-col items-center text-purple-300 active:scale-95 transition cursor-pointer p-1">
+            <span class="text-base">🐰</span>
+            <span class="text-[10px] font-mono mt-1">Trutopia</span>
+        </button>
+        <button onclick="window.app.openCaptureModal()" class="flex flex-col items-center -mt-6 active:scale-95 transition cursor-pointer">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#00ffcc] via-[#b026ff] to-[#ff007f] text-black flex items-center justify-center shadow-xl shadow-[#00ffcc]/40 border-2 border-black">
+                <i class="fa-solid fa-plus text-xl font-black"></i>
+            </div>
+            <span class="text-[10px] font-mono mt-1 font-extrabold text-[#00ffcc]">Capture</span>
+        </button>
+        <button onclick="window.app.filterTag('RECOVERY')" class="flex flex-col items-center text-cyan-300 active:scale-95 transition cursor-pointer p-1">
+            <span class="text-base">⚡</span>
+            <span class="text-[10px] font-mono mt-1">Recovery</span>
+        </button>
+        <button onclick="window.app.toggleViewMode()" class="flex flex-col items-center text-gray-300 active:scale-95 transition cursor-pointer p-1">
+            <i class="fa-solid fa-cube text-base text-[#00ffcc]"></i>
+            <span id="mobileViewText" class="text-[10px] font-mono mt-1">2.5D Mode</span>
+        </button>
+    </nav>
+
+    <div id="captureModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4" onclick="window.app.handleModalBackdropClick(event)">
+        <div class="w-full max-w-lg bg-[#050b14] border border-[#00ffcc] rounded-3xl p-6 shadow-[0_0_60px_rgba(0,255,204,0.35)] relative animate-in zoom-in-95 duration-150" onclick="event.stopPropagation()">
+            
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-infinity text-[#00ffcc]"></i>
+                    <h3 id="modalTitle" class="font-orbitron font-bold text-sm text-white tracking-wide">CAPTURE HOLOGRAPHIC NODE</h3>
+                </div>
+                <button onclick="window.app.closeCaptureModal()" class="text-gray-400 hover:text-white p-2 cursor-pointer" title="Close">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="noteForm" onsubmit="window.app.saveNote(event)" class="space-y-4">
+                <input type="hidden" id="noteId">
+                
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-400 mb-1">NODE TITLE</label>
+                    <input type="text" id="noteTitle" required placeholder="e.g., Quantum Poker Strategy..." class="w-full bg-[#081424] border border-gray-700 rounded-xl px-3.5 py-2.5 text-xs text-gray-100 focus:outline-none focus:border-[#00ffcc] transition">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-400 mb-2">CATEGORY / POKER SUIT EMOJI TAG</label>
+                    <div class="grid grid-cols-3 gap-2" id="emojiTagSelector">
+                        <button type="button" onclick="window.app.selectTagOption('TRUTOPIA', '🐰', '#b026ff')" class="tag-option-btn p-2.5 rounded-xl border border-purple-500/40 bg-purple-950/20 text-purple-300 font-mono text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer" data-val="TRUTOPIA">
+                            <span>🐰 Trutopia</span>
+                        </button>
+                        <button type="button" onclick="window.app.selectTagOption('RECOVERY', '⚡', '#00ffcc')" class="tag-option-btn p-2.5 rounded-xl border border-cyan-500/40 bg-cyan-950/20 text-cyan-300 font-mono text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer" data-val="RECOVERY">
+                            <span>⚡ Recovery</span>
+                        </button>
+                        <button type="button" onclick="window.app.selectTagOption('POKER', '♠️', '#ff007f')" class="tag-option-btn p-2.5 rounded-xl border border-pink-500/40 bg-pink-950/20 text-pink-300 font-mono text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer" data-val="POKER">
+                            <span>♠️ Poker X</span>
+                        </button>
+                    </div>
+                    <input type="hidden" id="noteTag" value="TRUTOPIA">
+                    <input type="hidden" id="noteEmoji" value="🐰">
+                    <input type="hidden" id="noteColor" value="#b026ff">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-400 mb-1">THOUGHT CONTENT / NEURONAL LORE</label>
+                    <textarea id="noteContent" rows="3" required placeholder="Type thoughts, strategies, or lore..." class="w-full bg-[#081424] border border-gray-700 rounded-xl px-3.5 py-2.5 text-xs text-gray-100 focus:outline-none focus:border-[#00ffcc] transition"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-mono text-gray-400 mb-1">ATTACH FILE / PHOTO (AUTO-COMPRESSED)</label>
+                    <label class="flex items-center justify-center px-3.5 py-2.5 border border-dashed border-gray-700 rounded-xl bg-[#081424] hover:border-[#00ffcc] cursor-pointer transition text-xs text-gray-300">
+                        <i class="fa-solid fa-paperclip mr-2 text-[#00ffcc]"></i>
+                        <span id="fileNameDisplay" class="truncate">Choose photo, PDF, audio or file...</span>
+                        <input type="file" id="fileInput" onchange="window.app.handleFileAttach(event)" class="hidden">
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-2">
+                    <button type="button" onclick="window.app.closeCaptureModal()" class="px-4 py-2.5 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700 text-xs font-mono transition cursor-pointer">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00ffcc] to-[#b026ff] text-black font-bold text-xs font-orbitron hover:opacity-95 shadow-md shadow-[#00ffcc]/30 transition cursor-pointer">SECURE TO TABLE</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Popup -->
+    <div id="toast" class="fixed bottom-24 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-[#050b14] border border-[#00ffcc] text-gray-100 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 text-xs font-mono">
+        <i class="fa-solid fa-circle-check text-[#00ffcc] text-sm"></i>
+        <span id="toastMsg">Action completed successfully!</span>
+    </div>
+
+    <script>
+        class X42HoloApp {
+            constructor() {
+                this.notes = [];
+                this.currentFilter = 'ALL';
+                this.searchQuery = '';
+                this.is3DTableView = true;
+                this.pendingFile = null;
+                this.init();
+            }
+
+            init() {
+                this.loadFromLocalStorage();
+                this.renderNotes();
+                this.selectTagOption('TRUTOPIA', '🐰', '#b026ff');
+            }
+
+            loadFromLocalStorage() {
+                try {
+                    const saved = localStorage.getItem('x42_holo_neuronal_notes');
+                    if (saved) {
+                        this.notes = JSON.parse(saved);
+                    } else {
+                        this.notes = [
+                            {
+                                id: 'x42-node-1',
+                                title: 'Poker X Infinity Table',
+                                tag: 'POKER',
+                                emoji: '♠️',
+                                color: '#ff007f',
+                                content: 'The glowing round poker table with neon infinity symbols and high-stakes X Coins betting.',
+                                date: new Date().toISOString(),
+                                x: 120,
+                                y: 80,
+                                file: null
+                            },
+                            {
+                                id: 'x42-node-2',
+                                title: 'Trutopia Rabbit Guides',
+                                tag: 'TRUTOPIA',
+                                emoji: '🐰',
+                                color: '#b026ff',
+                                content: 'Digital peace ambassadors floating over the river valley with quantum neural links.',
+                                date: new Date().toISOString(),
+                                x: 550,
+                                y: 140,
+                                file: null
+                            },
+                            {
+                                id: 'x42-node-3',
+                                title: 'Recovery Remmired Protocol',
+                                tag: 'RECOVERY',
+                                emoji: '⚡',
+                                color: '#00ffcc',
+                                content: 'Instant memory isolation and zero-friction restoration across all connected nodes.',
+                                date: new Date().toISOString(),
+                                x: 340,
+                                y: 380,
+                                file: null
+                            }
+                        ];
+                        this.saveToLocalStorage();
+                    }
+                } catch (e) {
+                    console.error("Storage load error:", e);
+                    this.notes = [];
+                }
+            }
+
+            saveToLocalStorage() {
+                try {
+                    localStorage.setItem('x42_holo_neuronal_notes', JSON.stringify(this.notes));
+                } catch (e) {
+                    this.showToast("Storage quota limit reached! Compressed file saved.", "error");
+                }
+            }
+
+            renderNotes() {
+                const container = document.getElementById('floatingCardsContainer');
+                const emptyState = document.getElementById('emptyState');
+                
+                let filtered = this.notes.filter(n => {
+                    const matchesTag = this.currentFilter === 'ALL' || n.tag === this.currentFilter;
+                    const matchesSearch = n.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                                          n.content.toLowerCase().includes(this.searchQuery.toLowerCase());
+                    return matchesTag && matchesSearch;
+                });
+
+                document.getElementById('nodeCountBadge').textContent = this.notes.length;
+
+                if (filtered.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+                container.innerHTML = filtered.map((n, idx) => {
+                    // Assign floating random organic position if not set
+                    const posX = n.x !== undefined ? n.x : (80 + (idx * 180) % 700);
+                    const posY = n.y !== undefined ? n.y : (60 + (idx * 130) % 450);
+
+                    return `
+                        <div onclick="window.app.editNote('${n.id}', event)" 
+                             class="holo-card rounded-2xl p-4 w-72 flex flex-col justify-between shadow-2xl group" 
+                             style="left: ${posX}px; top: ${posY}px; border-left: 4px solid ${n.color || '#00ffcc'};"
+                             data-id="${n.id}">
+                            
+                            <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-[${n.color || '#00ffcc'}]/20 to-transparent rounded-bl-full pointer-events-none"></div>
+                            
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider bg-[#060d1a] text-[${n.color || '#00ffcc'}] border border-[${n.color || '#00ffcc'}]/30">
+                                        ${n.emoji || '✨'} ${n.tag}
+                                    </span>
+                                    <span class="text-[10px] font-mono text-gray-400">${new Date(n.date).toLocaleDateString()}</span>
+                                </div>
+                                <h4 class="font-orbitron font-bold text-sm text-white group-hover:text-[${n.color || '#00ffcc'}] transition truncate mb-1.5">${this.escapeHtml(n.title)}</h4>
+                                <p class="text-xs text-gray-300 line-clamp-3 leading-relaxed mb-3">${this.escapeHtml(n.content)}</p>
+                            </div>
+
+                            ${n.file ? `
+                                <div class="mb-3 p-2 rounded-xl bg-[#030712]/80 border border-gray-800 flex items-center space-x-2 text-[11px] font-mono text-gray-300 truncate">
+                                    ${n.file.type && n.file.type.startsWith('image/') ? 
+                                        `<img src="${n.file.data}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-[#00ffcc]/40">` : 
+                                        `<i class="fa-solid fa-paperclip text-[${n.color || '#00ffcc'}]"></i>`}
+                                    <span class="truncate">${n.file.name}</span>
+                                </div>
+                            ` : ''}
+
+                            <div class="flex items-center justify-between pt-2 border-t border-gray-800/80 text-[11px] font-mono">
+                                <span class="text-gray-400"><i class="fa-solid fa-infinity text-xs mr-1 text-[${n.color || '#00ffcc'}]"></i> Node #${idx+1}</span>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="event.stopPropagation(); window.app.deleteNote('${n.id}')" class="text-gray-500 hover:text-red-400 p-1 transition cursor-pointer" title="Delete">
+                                        <i class="fa-solid fa-trash text-xs"></i>
+                                    </button>
+                                    <span class="text-[${n.color || '#00ffcc'}] group-hover:translate-x-1 transition flex items-center space-x-1 ml-1">
+                                        <span>Edit</span>
+                                        <i class="fa-solid fa-chevron-right text-[9px]"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            openCaptureModal() {
+                document.getElementById('modalTitle').textContent = 'CAPTURE HOLOGRAPHIC NODE';
+                document.getElementById('noteId').value = '';
+                document.getElementById('noteForm').reset();
+                this.pendingFile = null;
+                document.getElementById('fileNameDisplay').textContent = 'Choose photo, PDF, audio or file...';
+                this.selectTagOption('TRUTOPIA', '🐰', '#b026ff');
+                document.getElementById('captureModal').classList.remove('hidden');
+                document.getElementById('captureModal').classList.add('flex');
+            }
+
+            closeCaptureModal() {
+                document.getElementById('captureModal').classList.remove('flex');
+                document.getElementById('captureModal').classList.add('hidden');
+            }
+
+            handleModalBackdropClick(event) {
+                if (event.target.id === 'captureModal') {
+                    this.closeCaptureModal();
+                }
+            }
+
+            handleCanvasBackgroundClick(event) {
+                // If user clicks directly on the canvas background, close any active overlays or give smooth focus
+                if (event.target.id === 'floatingCardsContainer' || event.target.id === 'pokerTableSurface' || event.target.id === 'canvasWrapper') {
+                    // Clicking canvas background dismisses active popups / provides full map view as requested
+                    this.closeCaptureModal();
+                }
+            }
+
+            selectTagOption(tag, emoji, color) {
+                document.getElementById('noteTag').value = tag;
+                document.getElementById('noteEmoji').value = emoji;
+                document.getElementById('noteColor').value = color;
+                document.querySelectorAll('.tag-option-btn').forEach(btn => {
+                    if (btn.getAttribute('data-val') === tag) {
+                        btn.className = "tag-option-btn p-2.5 rounded-xl border border-[#00ffcc] bg-[#00ffcc]/20 text-white font-mono text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer shadow-sm";
+                    } else {
+                        btn.className = "tag-option-btn p-2.5 rounded-xl border border-gray-700 bg-gray-900/40 text-gray-400 font-mono text-xs flex items-center justify-center space-x-1.5 transition cursor-pointer hover:border-gray-500";
+                    }
+                });
+            }
+
+            editNote(id, event) {
+                event.stopPropagation();
+                const note = this.notes.find(n => n.id === id);
+                if (!note) return;
+
+                document.getElementById('modalTitle').textContent = 'EDIT HOLOGRAPHIC NODE';
+                document.getElementById('noteId').value = note.id;
+                document.getElementById('noteTitle').value = note.title;
+                document.getElementById('noteContent').value = note.content;
+                this.selectTagOption(note.tag || 'TRUTOPIA', note.emoji || '🐰', note.color || '#b026ff');
+
+                if (note.file) {
+                    this.pendingFile = note.file;
+                    document.getElementById('fileNameDisplay').textContent = note.file.name;
+                } else {
+                    this.pendingFile = null;
+                    document.getElementById('fileNameDisplay').textContent = 'Choose photo, PDF, audio or file...';
+                }
+
+                document.getElementById('captureModal').classList.remove('hidden');
+                document.getElementById('captureModal').classList.add('flex');
+            }
+
+            deleteNote(id) {
+                this.notes = this.notes.filter(n => n.id !== id);
+                this.saveToLocalStorage();
+                this.renderNotes();
+                this.showToast("Node removed from canvas.");
+            }
+
+            handleFileAttach(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (file.type.startsWith('image/')) {
+                        // Compress image to fit safely within localStorage quota
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let width = img.width;
+                            let height = img.height;
+                            const maxDim = 600;
+                            if (width > height && width > maxDim) {
+                                height *= maxDim / width;
+                                width = maxDim;
+                            } else if (height > maxDim) {
+                                width *= maxDim / height;
+                                height = maxDim;
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const compressedData = canvas.toDataURL('image/jpeg', 0.75);
+
+                            this.pendingFile = {
+                                name: file.name,
+                                size: (file.size / 1024).toFixed(1) + ' KB',
+                                type: file.type,
+                                data: compressedData
+                            };
+                            document.getElementById('fileNameDisplay').textContent = file.name + ' (Optimized)';
+                        };
+                        img.src = e.target.result;
+                    } else {
+                        this.pendingFile = {
+                            name: file.name,
+                            size: (file.size / 1024).toFixed(1) + ' KB',
+                            type: file.type || 'application/octet-stream',
+                            data: e.target.result
+                        };
+                        document.getElementById('fileNameDisplay').textContent = file.name;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+
+            saveNote(event) {
+                event.preventDefault();
+                const id = document.getElementById('noteId').value || 'x42-' + Date.now();
+                const title = document.getElementById('noteTitle').value.trim();
+                const tag = document.getElementById('noteTag').value;
+                const emoji = document.getElementById('noteEmoji').value;
+                const color = document.getElementById('noteColor').value;
+                const content = document.getElementById('noteContent').value.trim();
+
+                const existingIndex = this.notes.findIndex(n => n.id === id);
+                const randomX = Math.floor(Math.random() * 650) + 50;
+                const randomY = Math.floor(Math.random() * 380) + 50;
+
+                const noteObj = {
+                    id,
+                    title,
+                    tag,
+                    emoji,
+                    color,
+                    content,
+                    date: existingIndex >= 0 ? this.notes[existingIndex].date : new Date().toISOString(),
+                    x: existingIndex >= 0 ? this.notes[existingIndex].x : randomX,
+                    y: existingIndex >= 0 ? this.notes[existingIndex].y : randomY,
+                    file: this.pendingFile || (existingIndex >= 0 ? this.notes[existingIndex].file : null)
+                };
+
+                if (existingIndex >= 0) {
+                    this.notes[existingIndex] = noteObj;
+                    this.showToast("Holographic node updated!");
+                } else {
+                    this.notes.unshift(noteObj);
+                    this.showToast("New node pinned to table!");
+                }
+
+                this.saveToLocalStorage();
+                this.renderNotes();
+                this.closeCaptureModal();
+            }
+
+            filterTag(tag) {
+                this.currentFilter = tag;
+                this.renderNotes();
+                this.showToast(`Filtered: ${tag}`);
+            }
+
+            handleSearch(query) {
+                this.searchQuery = query;
+                this.renderNotes();
+            }
+
+            toggleViewMode() {
+                this.is3DTableView = !this.is3DTableView;
+                const surface = document.getElementById('pokerTableSurface');
+                const btnText = document.getElementById('viewModeText');
+                const mobileViewText = document.getElementById('mobileViewText');
+
+                if (this.is3DTableView) {
+                    surface.className = "poker-table-surface w-full max-w-[1400px] h-[82vh] rounded-[48px] border-2 border-[#00ffcc]/40 relative overflow-hidden flex flex-col shadow-2xl";
+                    if(btnText) btnText.textContent = "2.5D Tilted";
+                    if(mobileViewText) mobileViewText.textContent = "2.5D Mode";
+                    this.showToast("Switched to 2.5D Tilted Poker Table");
+                } else {
+                    surface.className = "w-full max-w-[1400px] h-[82vh] rounded-[48px] border-2 border-[#b026ff]/50 relative overflow-hidden flex flex-col shadow-2xl flat-surface bg-[#060d1a]";
+                    if(btnText) btnText.textContent = "Bird's Eye";
+                    if(mobileViewText) mobileViewText.textContent = "Flat Mode";
+                    this.showToast("Switched to Flat Bird's Eye Canvas");
+                }
+            }
+
+            showToast(msg, type = 'success') {
+                const toast = document.getElementById('toast');
+                const toastMsg = document.getElementById('toastMsg');
+                toastMsg.textContent = msg;
+                
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 2800);
+            }
+
+            escapeHtml(str) {
+                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+            }
+        }
+
+        window.app = new X42HoloApp();
+    </script>
+</body>
+</html>
