@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OmniStage Pro: Infinite Quantum Blender 3D Studio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080314;
+            --purple: #a855f7;
+            --cyan: #06b6d4;
+            --pink: #ec4899;
+            --amber: #f59e0b;
+            --emerald: #10b981;
+            --rose: #f43f5e;
+            --glass-bg: rgba(22, 10, 45, 0.92);
+            --glass-border: rgba(168, 85, 247, 0.4);
+            --glass-shadow: 0 0 35px rgba(168, 85, 247, 0.25), inset 0 0 15px rgba(168, 85, 247, 0.08);
+        }
+        * {
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: #a855f7 #080314;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none;
+            user-select: none;
+            overflow: hidden;
+            background: var(--bg);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+        .glass-panel-cyan {
+            background: rgba(10, 20, 45, 0.92);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            box-shadow: 0 0 35px rgba(6, 182, 212, 0.25), inset 0 0 15px rgba(6, 182, 212, 0.08);
+        }
+        .glass-panel-amber {
+            background: rgba(35, 20, 5, 0.92);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.25), inset 0 0 15px rgba(245, 158, 11, 0.08);
+        }
+        .glass-panel-pink {
+            background: rgba(35, 5, 20, 0.92);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(236, 72, 153, 0.4);
+            box-shadow: 0 0 35px rgba(236, 72, 153, 0.25), inset 0 0 15px rgba(236, 72, 153, 0.08);
+        }
+        .neon-glow-purple {
+            text-shadow: 0 0 15px rgba(168, 85, 247, 0.9), 0 0 30px rgba(168, 85, 247, 0.6);
+        }
+        .neon-glow-cyan {
+            text-shadow: 0 0 12px rgba(6, 182, 212, 0.9), 0 0 24px rgba(6, 182, 212, 0.5);
+        }
+        .crt::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%),
+                linear-gradient(90deg, rgba(168, 85, 247, 0.015), rgba(6, 182, 212, 0.01), rgba(236, 72, 153, 0.015));
+            z-index: 100;
+            background-size: 100% 4px, 4px 100%;
+            pointer-events: none;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(8, 3, 20, 0.9);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a855f7;
+            border-radius: 2px;
+        }
+        .btn-hover {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-hover:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+        }
+        .btn-hover:active {
+            transform: scale(0.95);
+        }
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: rgba(2, 1, 6, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-backdrop.active {
+            display: flex;
+        }
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 1.5rem;
+            position: relative;
+            animation: modalIn 0.3s ease-out;
+        }
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.92) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        .keyframe-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #a855f7;
+            position: absolute;
+            cursor: pointer;
+            border: 2px solid #fff;
+            transition: all 0.2s;
+        }
+        .keyframe-dot:hover {
+            transform: scale(1.5);
+            box-shadow: 0 0 12px #a855f7;
+        }
+        .keyframe-dot.active {
+            background: #ec4899;
+            box-shadow: 0 0 16px #ec4899;
+        }
+        .timeline-marker {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: #ec4899;
+            cursor: ew-resize;
+            z-index: 5;
+        }
+        .timeline-marker::after {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -3px;
+            width: 8px;
+            height: 8px;
+            background: #ec4899;
+            border-radius: 50%;
+        }
+        .safety-sphere-hud {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 25;
+            pointer-events: none;
+        }
+        .toast-animate {
+            animation: toastIn 0.4s ease-out, toastOut 0.4s ease-in 2.5s forwards;
+        }
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        @keyframes toastOut {
+            to {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+        }
+        .voxel-preview-cell {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .voxel-preview-cell:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.7);
+        }
+        .voxel-preview-cell.active {
+            box-shadow: 0 0 12px #ec4899;
+            border: 2px solid #ec4899;
+        }
+        .audio-wave-bar {
+            transition: height 0.05s ease;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            background: rgba(168, 85, 247, 0.3);
+            border-radius: 10px;
+            height: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #a855f7;
+            border: 2px solid #fff;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+        }
+        input[type="range"]::-moz-range-track {
+            background: rgba(168, 85, 247, 0.3);
+            border-radius: 10px;
+            height: 4px;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #a855f7;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+        }
+    </style>
+</head>
+<body class="text-slate-100 crt">
+
+    <!-- ==================== 3D CANVAS CONTAINER ==================== -->
+    <div id="canvas-container" class="fixed inset-0 z-0 cursor-crosshair"></div>
+
+    <!-- ==================== LASSO CANVAS OVERLAY ==================== -->
+    <canvas id="lasso-canvas" class="fixed inset-0 z-20 pointer-events-none"></canvas>
+
+    <!-- ==================== SAFETY SPHERE HUD ==================== -->
+    <div class="safety-sphere-hud flex items-center space-x-2 glass-panel px-3 py-2 rounded-full pointer-events-auto">
+        <span class="text-[9px] font-orbitron text-emerald-300 tracking-wider">🛡️ SAFETY SPHERE</span>
+        <span id="safety-sphere-radius-display" class="text-[10px] font-mono text-cyan-300">25.0</span>
+        <input type="range" id="safety-sphere-slider" min="5" max="50" value="25" step="0.5"
+        oninput="updateSafetySphere(this.value)" class="w-24 accent-emerald-500">
+        <span class="text-[9px] text-slate-400">BOUNDARY</span>
+    </div>
+
+    <!-- ==================== TOP RIGHT: COLOR WHEEL & ALPHA ==================== -->
+    <div class="fixed top-16 right-4 z-30 glass-panel p-3 rounded-2xl flex flex-col items-center space-y-2 pointer-events-auto max-w-[120px]">
+        <span class="text-[8px] font-orbitron text-pink-300 tracking-widest">ADOBE FARBKREIS</span>
+        <div class="relative w-20 h-20 rounded-full overflow-hidden shadow-lg border border-pink-500/50 cursor-pointer" title="Farbkreis Color Wheel">
+            <canvas id="farbkreis-canvas" width="80" height="80" class="w-full h-full"></canvas>
+            <div id="farbkreis-cursor" class="absolute w-2.5 h-2.5 border-2 border-white rounded-full pointer-events-none transform -translate-x-1/2 -translate-y-1/2 shadow-md" style="top:50%;left:50%;"></div>
+        </div>
+        <div class="flex items-center space-x-1.5 w-full">
+            <div id="active-color-preview" class="w-5 h-5 rounded-lg bg-pink-500 border border-white/40 shadow"></div>
+            <input type="text" id="active-hex-display" value="#ec4899" readonly class="w-12 bg-slate-900 text-[9px] font-mono text-center text-pink-300 rounded border border-purple-500/30 py-0.5">
+        </div>
+        <div class="w-full border-t border-purple-500/30 pt-1.5 space-y-0.5">
+            <div class="flex justify-between text-[8px] text-slate-300 font-orbitron">
+                <span>ALPHA</span><span id="alpha-val-display" class="text-cyan-400">1.0</span>
+            </div>
+            <input type="range" id="brush-alpha-slider" min="0.05" max="1.0" step="0.05" value="1.0" oninput="updateAlpha(this.value)" class="w-full accent-purple-500">
+        </div>
+    </div>
+
+    <!-- ==================== TOP LEFT: BRUSH TOOLBAR ==================== -->
+    <div class="fixed top-16 left-4 z-30 glass-panel p-3 rounded-2xl flex flex-col space-y-2 pointer-events-auto max-w-[200px] shadow-2xl">
+        <div class="flex items-center justify-between border-b border-purple-500/30 pb-1">
+            <span class="text-[9px] font-orbitron text-cyan-300 font-bold"><i class="fa-solid fa-paintbrush mr-1"></i>BRUSHES</span>
+            <span id="active-brush-badge" class="text-[8px] bg-cyan-950 text-cyan-200 px-2 py-0.5 rounded font-mono">PAINT</span>
+        </div>
+        <div class="grid grid-cols-4 gap-1 text-[8px]">
+            <button onclick="setBrushMode('paint')" class="py-1 px-1 bg-slate-900 hover:bg-cyan-950 border border-cyan-500/40 rounded text-cyan-200 transition font-orbitron btn-hover">PAINT</button>
+            <button onclick="setBrushMode('eraser')" class="py-1 px-1 bg-slate-900 hover:bg-rose-950 border border-rose-500/40 rounded text-rose-200 transition font-orbitron btn-hover">ERASE</button>
+            <button onclick="setBrushMode('stamp')" class="py-1 px-1 bg-slate-900 hover:bg-purple-950 border border-purple-500/40 rounded text-purple-200 transition font-orbitron btn-hover">STAMP</button>
+            <button onclick="setBrushMode('lasso')" class="py-1 px-1 bg-slate-900 hover:bg-amber-950 border border-amber-500/40 rounded text-amber-200 transition font-orbitron btn-hover">LASSO</button>
+            <button onclick="setBrushMode('sculpt')" class="py-1 px-1 bg-slate-900 hover:bg-emerald-950 border border-emerald-500/40 rounded text-emerald-200 transition font-orbitron btn-hover">SCULPT</button>
+            <button onclick="setBrushMode('smooth')" class="py-1 px-1 bg-slate-900 hover:bg-blue-950 border border-blue-500/40 rounded text-blue-200 transition font-orbitron btn-hover">SMOOTH</button>
+            <button onclick="setBrushMode('grow')" class="py-1 px-1 bg-slate-900 hover:bg-lime-950 border border-lime-500/40 rounded text-lime-200 transition font-orbitron btn-hover">GROW</button>
+            <button onclick="setBrushMode('shrink')" class="py-1 px-1 bg-slate-900 hover:bg-orange-950 border border-orange-500/40 rounded text-orange-200 transition font-orbitron btn-hover">SHRINK</button>
+        </div>
+        <div class="border-t border-purple-500/30 pt-1.5 space-y-1">
+            <span class="text-[7px] font-orbitron text-cyan-300 tracking-wider">PAPERDOLLS & EMOJI</span>
+            <div class="grid grid-cols-5 gap-1" id="inline-asset-palette">
+                <button onclick="selectEmojiBrush('👤')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">👤</button>
+                <button onclick="selectEmojiBrush('🐰')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">🐰</button>
+                <button onclick="selectEmojiBrush('💎')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">💎</button>
+                <button onclick="selectEmojiBrush('✨')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">✨</button>
+                <button onclick="selectEmojiBrush('🧬')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">🧬</button>
+                <button onclick="selectEmojiBrush('🌊')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">🌊</button>
+                <button onclick="selectEmojiBrush('🦋')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">🦋</button>
+                <button onclick="selectEmojiBrush('🐉')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">🐉</button>
+                <button onclick="selectEmojiBrush('👑')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">👑</button>
+                <button onclick="selectEmojiBrush('🌙')" class="text-sm p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover">🌙</button>
+            </div>
+        </div>
+        <div class="text-[8px] text-slate-300 flex justify-between pt-0.5">
+            <span>Radius:</span><span id="hud-radius-val" class="font-mono text-cyan-400">0.8</span>
+        </div>
+    </div>
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="relative z-20 w-full border-b border-purple-500/30 glass-panel px-4 py-2.5 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <div class="w-2.5 h-2.5 bg-purple-500 rounded-full animate-ping"></div>
+            <h1 class="font-orbitron font-black text-purple-400 text-sm md:text-base tracking-wider neon-glow-purple">
+                OMNISTAGE PRO // QUANTUM CREATOR STUDIO
+            </h1>
+        </div>
+        <div class="flex items-center space-x-2 flex-wrap">
+            <button onclick="openModal('animation-modal')" class="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/50 rounded-full text-emerald-300 text-[10px] font-orbitron hover:bg-emerald-900 transition flex items-center space-x-1 shadow-lg btn-hover">
+                <i class="fa-solid fa-wand-magic-sparkles"></i><span>ANIMATION</span>
+            </button>
+            <button onclick="openModal('timeline-modal')" class="px-2.5 py-1 bg-purple-950/80 border border-purple-500/50 rounded-full text-purple-300 text-[10px] font-orbitron hover:bg-purple-900 transition flex items-center space-x-1 shadow-lg btn-hover">
+                <i class="fa-solid fa-film"></i><span>TIMELINE</span>
+            </button>
+            <label class="px-2.5 py-1 bg-cyan-950/60 border border-cyan-500/40 rounded-full text-cyan-300 text-[10px] font-orbitron hover:bg-cyan-900 transition cursor-pointer flex items-center space-x-1 btn-hover">
+                <i class="fa-solid fa-file-arrow-up"></i><span>UPLOAD</span>
+                <input type="file" id="universal-file-input" class="hidden" onchange="handleFileUpload(event)" multiple accept=".glb,.gltf,.obj,.png,.jpg,.jpeg,.mp3,.m4a,.mp4,.wav,.html,.txt,.pdf">
+            </label>
+            <button onclick="openModal('library-modal')" class="px-2.5 py-1 bg-amber-950/60 border border-amber-500/40 rounded-full text-amber-300 text-[10px] font-orbitron hover:bg-amber-900 transition flex items-center space-x-1 btn-hover">
+                <i class="fa-solid fa-book-bookmark"></i><span>LIBRARY</span>
+            </button>
+            <button onclick="openModal('humanoid-modal')" class="px-2.5 py-1 bg-pink-950/60 border border-pink-500/40 rounded-full text-pink-300 text-[10px] font-orbitron hover:bg-pink-900 transition flex items-center space-x-1 btn-hover">
+                <i class="fa-solid fa-user-robot"></i><span>HUMANOID</span>
+            </button>
+            <button onclick="openModal('audio-modal')" class="px-2.5 py-1 bg-rose-950/60 border border-rose-500/40 rounded-full text-rose-300 text-[10px] font-orbitron hover:bg-rose-900 transition flex items-center space-x-1 btn-hover">
+                <i class="fa-solid fa-waveform"></i><span>AUDIO</span>
+            </button>
+            <button onclick="undoAction()" class="px-2 py-1 bg-slate-800 border border-slate-500/40 rounded-full text-slate-300 text-[10px] font-orbitron hover:bg-slate-700 transition flex items-center space-x-1 btn-hover" title="Undo (Ctrl+Z)">
+                <i class="fa-solid fa-rotate-left"></i>
+            </button>
+            <button onclick="redoAction()" class="px-2 py-1 bg-slate-800 border border-slate-500/40 rounded-full text-slate-300 text-[10px] font-orbitron hover:bg-slate-700 transition flex items-center space-x-1 btn-hover" title="Redo (Ctrl+Y)">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- ==================== BOTTOM HUD / MAIN CONTROLS ==================== -->
+    <main id="hud-container" class="relative z-10 flex-grow w-full max-w-7xl mx-auto px-4 py-3 flex flex-col justify-between pointer-events-none transition-opacity duration-300">
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="glass-panel rounded-2xl p-2.5 max-w-xs">
+                <div class="flex items-center space-x-2 mb-0.5">
+                    <span class="text-cyan-400 text-sm">🎵✨</span>
+                    <span class="font-orbitron font-bold text-[10px] text-cyan-200">AUDIO WAVELENGTH</span>
+                </div>
+                <p id="audio-status-display" class="text-[10px] text-slate-300">Upload audio to emit rainbow wavelengths!</p>
+                <audio id="background-media-audio" class="hidden" loop></audio>
+                <div id="audio-waveform-container" class="flex items-end space-x-0.5 h-6 mt-1.5"></div>
+            </div>
+            <div class="glass-panel rounded-2xl p-2.5 max-w-xs text-right">
+                <span class="text-[8px] font-orbitron text-amber-300 tracking-widest">TIMELINE STATUS</span>
+                <p id="timeline-status-display" class="text-[10px] text-slate-300">Idle — Press Record to capture</p>
+            </div>
+        </div>
+
+        <div id="toast-notification" class="pointer-events-auto mx-auto glass-panel px-5 py-2 rounded-2xl text-xs font-orbitron text-purple-200 opacity-0 transition-opacity duration-300">
+            Ready.
+        </div>
+
+        <div class="pointer-events-auto flex flex-col items-center pb-3">
+            <div class="glass-panel p-2 rounded-full flex items-center space-x-2 shadow-2xl">
+                <div id="spherical-joystick" class="w-10 h-10 rounded-full border-2 border-cyan-500/60 bg-cyan-950/60 flex items-center justify-center relative cursor-grab shadow-lg" onwheel="adjustValueWithWheel(event)" onpointerdown="startJoystickDrag(event)" title="Spherical Joystick: Wheel or Drag to Tune Brush">
+                    <div id="joystick-knob" class="w-3.5 h-3.5 rounded-full bg-cyan-400"></div>
+                </div>
+                <button onclick="openModal('sculpt-modal')" class="p-2.5 bg-slate-900 hover:bg-purple-950 text-purple-300 rounded-full w-10 h-10 flex items-center justify-center transition hover:scale-110 border border-purple-500/40 btn-hover" title="Spawn Geometries">
+                    <i class="fa-solid fa-cube text-xs"></i>
+                </button>
+                <button onclick="openModal('save-asset-modal')" class="p-2.5 bg-slate-900 hover:bg-pink-950 text-pink-300 rounded-full w-10 h-10 flex items-center justify-center transition hover:scale-110 border border-pink-500/40 btn-hover" title="Save to Library">
+                    <i class="fa-solid fa-floppy-disk text-xs"></i>
+                </button>
+                <button onclick="openModal('material-modal')" class="p-2.5 bg-slate-900 hover:bg-emerald-950 text-emerald-300 rounded-full w-10 h-10 flex items-center justify-center transition hover:scale-110 border border-emerald-500/40 btn-hover" title="Materials & Skins">
+                    <i class="fa-solid fa-palette text-xs"></i>
+                </button>
+                <button onclick="openModal('gravity-modal')" class="p-2.5 bg-slate-900 hover:bg-indigo-950 text-indigo-300 rounded-full w-10 h-10 flex items-center justify-center transition hover:scale-110 border border-indigo-500/40 btn-hover" title="Gravity & Physics">
+                    <i class="fa-solid fa-arrow-down text-xs"></i>
+                </button>
+                <button onclick="startRecording()" id="record-btn" class="p-2.5 bg-slate-900 hover:bg-rose-950 text-rose-300 rounded-full w-10 h-10 flex items-center justify-center transition hover:scale-110 border border-rose-500/40 btn-hover" title="Record Keyframes">
+                    <i class="fa-solid fa-circle-dot text-xs"></i>
+                </button>
+                <button onclick="playTimeline()" id="play-btn" class="p-2.5 bg-slate-900 hover:bg-lime-950 text-lime-300 rounded-full w-10 h-10 flex items-center justify-center transition hover:scale-110 border border-lime-500/40 btn-hover" title="Play Timeline">
+                    <i class="fa-solid fa-play text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- ANIMATION MODAL -->
+    <div id="animation-modal" class="modal-backdrop">
+        <div class="max-w-3xl w-full glass-panel-cyan rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3 border-b border-cyan-500/30 pb-2">
+                <h3 class="font-orbitron font-bold text-cyan-300 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>VECTOR 2.5D ANIMATION STUDIO</h3>
+                <button onclick="closeModal('animation-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-slate-300 mb-3">Animate selected object transforms and save to library!</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div class="bg-slate-900/90 p-4 rounded-2xl border border-cyan-500/40 flex flex-col items-center justify-center h-36 relative">
+                    <span id="anim-preview-emoji" class="text-4xl animate-bounce">✨</span>
+                    <span class="text-[9px] font-orbitron text-cyan-300 mt-1.5">KEYFRAME PATH PREVIEW</span>
+                </div>
+                <div class="space-y-2.5 text-xs text-slate-300 flex flex-col justify-center">
+                    <div>
+                        <label class="block font-orbitron text-cyan-200 mb-1 text-[10px]">MOTION TYPE</label>
+                        <select id="anim-type" class="w-full p-2 bg-slate-900 border border-cyan-500/40 rounded-xl text-white text-xs">
+                            <option value="float">Quantum Floating Wave</option>
+                            <option value="spin">360° Neon Spin</option>
+                            <option value="pulse">Heartbeat Pulse</option>
+                            <option value="bounce">Gravity Bounce</option>
+                            <option value="sway">Wind Sway</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-orbitron text-cyan-200 mb-1 text-[10px]">SPEED</label>
+                        <input type="range" id="anim-speed" min="0.2" max="4.0" step="0.1" value="1.0" class="w-full accent-cyan-500">
+                    </div>
+                    <button onclick="applyAndSaveAnimationToLibrary()" class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-purple-600 rounded-xl font-orbitron font-bold text-white text-[10px] shadow-lg btn-hover">
+                        SAVE ANIMATION & ADD TO LIBRARY
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TIMELINE & KEYFRAME EDITOR MODAL -->
+    <div id="timeline-modal" class="modal-backdrop">
+        <div class="max-w-4xl w-full glass-panel-amber rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3 border-b border-amber-500/30 pb-2">
+                <h3 class="font-orbitron font-bold text-amber-300 text-sm"><i class="fa-solid fa-film mr-2"></i>TIMELINE & KEYFRAME EDITOR</h3>
+                <button onclick="closeModal('timeline-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div class="flex items-center space-x-3">
+                    <span class="text-[10px] font-orbitron text-amber-200">FRAME:</span>
+                    <span id="current-frame-display" class="text-sm font-mono text-amber-300">0</span>
+                    <span class="text-[10px] text-slate-400">/</span>
+                    <span id="total-frames-display" class="text-sm font-mono text-slate-300">100</span>
+                    <button onclick="addKeyframe()" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 border border-amber-500/40 rounded-lg text-[10px] font-orbitron text-amber-300 btn-hover">
+                        <i class="fa-solid fa-key mr-1"></i>ADD KEYFRAME
+                    </button>
+                    <button onclick="deleteKeyframe()" class="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 border border-rose-500/40 rounded-lg text-[10px] font-orbitron text-rose-300 btn-hover">
+                        <i class="fa-solid fa-trash mr-1"></i>DEL KEYFRAME
+                    </button>
+                </div>
+                <div id="timeline-track" class="relative h-16 bg-slate-900 rounded-xl border border-amber-500/30 overflow-hidden cursor-pointer">
+                    <div id="timeline-keyframes" class="absolute inset-0"></div>
+                    <div id="timeline-marker" class="timeline-marker" style="left:0%;"></div>
+                    <div class="absolute bottom-1 left-2 text-[8px] text-slate-500 font-mono">0s</div>
+                    <div class="absolute bottom-1 right-2 text-[8px] text-slate-500 font-mono">10s</div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="playTimeline()" class="px-4 py-2 bg-lime-950 hover:bg-lime-900 border border-lime-500/40 rounded-xl text-[10px] font-orbitron text-lime-300 btn-hover">
+                        <i class="fa-solid fa-play mr-1"></i>PLAY
+                    </button>
+                    <button onclick="pauseTimeline()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-500/40 rounded-xl text-[10px] font-orbitron text-slate-300 btn-hover">
+                        <i class="fa-solid fa-pause mr-1"></i>PAUSE
+                    </button>
+                    <button onclick="stopTimeline()" class="px-4 py-2 bg-rose-950 hover:bg-rose-900 border border-rose-500/40 rounded-xl text-[10px] font-orbitron text-rose-300 btn-hover">
+                        <i class="fa-solid fa-stop mr-1"></i>STOP
+                    </button>
+                    <span class="text-[10px] font-orbitron text-slate-400 ml-2">FPS:</span>
+                    <input type="number" id="fps-input" value="30" min="5" max="120" class="w-16 p-1.5 bg-slate-900 border border-amber-500/40 rounded-lg text-white text-xs text-center">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-[9px] font-orbitron text-slate-400">LOOP:</span>
+                    <input type="checkbox" id="loop-checkbox" checked class="accent-amber-500">
+                    <span class="text-[9px] font-orbitron text-slate-400">AUTO-KEYFRAME:</span>
+                    <input type="checkbox" id="auto-keyframe-checkbox" checked class="accent-amber-500">
+                </div>
+                <div id="timeline-keyframe-list" class="space-y-1 max-h-32 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SAVE ASSET MODAL -->
+    <div id="save-asset-modal" class="modal-backdrop">
+        <div class="max-w-md w-full glass-panel-pink rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-orbitron font-bold text-pink-300 text-sm"><i class="fa-solid fa-floppy-disk mr-2"></i>SAVE ASSET TO LIBRARY</h3>
+                <button onclick="closeModal('save-asset-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-slate-300">
+                <div>
+                    <label class="block font-orbitron text-pink-200 mb-1 text-[10px]">ASSET TITLE</label>
+                    <input type="text" id="asset-title-input" value="Custom Quantum Sculpture" class="w-full p-2 bg-slate-900 border border-pink-500/40 rounded-xl text-white text-xs">
+                </div>
+                <div>
+                    <label class="block font-orbitron text-pink-200 mb-1 text-[10px]">EMOJI CLASSIFIER</label>
+                    <input type="text" id="asset-emoji-input" value="💎" class="w-full p-2 bg-slate-900 border border-pink-500/40 rounded-xl text-white text-center text-lg">
+                </div>
+                <button onclick="saveAssetToLibrary()" class="w-full py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl font-orbitron font-bold text-white text-[10px] btn-hover">
+                    SAVE & EQUIP AS BRUSH
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIBRARY MODAL -->
+    <div id="library-modal" class="modal-backdrop">
+        <div class="max-w-3xl w-full glass-panel rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-orbitron font-bold text-amber-300 text-sm"><i class="fa-solid fa-book-bookmark mr-2"></i>3D ASSET LIBRARY & EXPORTS</h3>
+                <button onclick="closeModal('library-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="library-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+    </div>
+
+    <!-- MATERIAL & AUDIO MODAL -->
+    <div id="material-modal" class="modal-backdrop">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-orbitron font-bold text-emerald-300 text-sm"><i class="fa-solid fa-palette mr-2"></i>MATERIALS & SKINS</h3>
+                <button onclick="closeModal('material-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-slate-300">
+                <div>
+                    <label class="block font-orbitron text-emerald-200 mb-1 text-[10px]">UPLOAD SKIN (IMG / VIDEO / HTML / PDF / TXT)</label>
+                    <input type="file" id="skin-file-input" accept=".png,.jpg,.jpeg,.mp4,.html,.txt,.pdf" onchange="handleSkinUpload(event)" class="w-full p-2 bg-slate-900 border border-emerald-500/40 rounded-xl text-white text-xs file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-emerald-600 file:text-white cursor-pointer">
+                </div>
+                <div>
+                    <label class="block font-orbitron text-emerald-200 mb-1 text-[10px]">AUDIO (.mp3/.wav/.m4a)</label>
+                    <input type="file" accept="audio/*" onchange="loadAudioReactivity(event)" class="w-full p-2 bg-slate-900 border border-emerald-500/40 rounded-xl text-white text-xs file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-emerald-600 file:text-white cursor-pointer">
+                </div>
+                <button onclick="applySkinToSelected()" class="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl font-orbitron font-bold text-white text-[10px] btn-hover">
+                    APPLY SKIN TO SELECTED
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO MODAL -->
+    <div id="audio-modal" class="modal-backdrop">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-orbitron font-bold text-rose-300 text-sm"><i class="fa-solid fa-waveform mr-2"></i>AUDIO EFFECTS & REACTIVITY</h3>
+                <button onclick="closeModal('audio-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-slate-300">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-orbitron">MASTER AUDIO</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="master-audio-toggle" checked class="sr-only peer" onchange="toggleMasterAudio(this.checked)">
+                        <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-rose-600 transition"></div>
+                        <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+                    </label>
+                </div>
+                <div>
+                    <label class="block font-orbitron text-rose-200 mb-1 text-[10px]">REACTIVITY STRENGTH</label>
+                    <input type="range" id="audio-reactivity-slider" min="0" max="200" value="100" class="w-full accent-rose-500" oninput="updateAudioReactivity(this.value)">
+                </div>
+                <div>
+                    <label class="block font-orbitron text-rose-200 mb-1 text-[10px]">AUDIO-DRIVEN ANIMATION</label>
+                    <select id="audio-anim-type" class="w-full p-2 bg-slate-900 border border-rose-500/40 rounded-xl text-white text-xs">
+                        <option value="scale">Pulse Scale</option>
+                        <option value="bounce">Bounce Height</option>
+                        <option value="spin">Rotate Speed</option>
+                        <option value="color">Color Shift</option>
+                    </select>
+                </div>
+                <div id="audio-frequency-display" class="flex items-end space-x-0.5 h-8 bg-slate-900 rounded-lg p-1.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCULPT GEOMETRY MODAL -->
+    <div id="sculpt-modal" class="modal-backdrop">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-orbitron font-bold text-purple-300 text-sm"><i class="fa-solid fa-cube mr-2"></i>SPAWN GEOMETRIES</h3>
+                <button onclick="closeModal('sculpt-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-2 text-xs text-slate-300">
+                <button onclick="spawnGeometry('voxel-cube')" class="w-full p-2.5 bg-slate-900 hover:bg-purple-950 border border-purple-500/30 rounded-xl flex items-center justify-between transition btn-hover">
+                    <span><i class="fa-solid fa-cube text-purple-400 mr-2"></i>Subdivision Cube</span>
+                </button>
+                <button onclick="spawnGeometry('morphic-sphere')" class="w-full p-2.5 bg-slate-900 hover:bg-purple-950 border border-purple-500/30 rounded-xl flex items-center justify-between transition btn-hover">
+                    <span><i class="fa-solid fa-circle text-purple-400 mr-2"></i>Morphic Sphere</span>
+                </button>
+                <button onclick="spawnGeometry('torus-knot')" class="w-full p-2.5 bg-slate-900 hover:bg-purple-950 border border-purple-500/30 rounded-xl flex items-center justify-between transition btn-hover">
+                    <span><i class="fa-solid fa-infinity text-purple-400 mr-2"></i>Torus Knot</span>
+                </button>
+                <button onclick="spawnGeometry('icosahedron')" class="w-full p-2.5 bg-slate-900 hover:bg-purple-950 border border-purple-500/30 rounded-xl flex items-center justify-between transition btn-hover">
+                    <span><i class="fa-solid fa-shapes text-purple-400 mr-2"></i>Icosahedron</span>
+                </button>
+                <button onclick="spawnPaperdoll(activeEmojiClass || '👤')" class="w-full p-2.5 bg-slate-900 hover:bg-cyan-950 border border-cyan-500/30 rounded-xl flex items-center justify-between transition btn-hover">
+                    <span><i class="fa-solid fa-user text-cyan-400 mr-2"></i>Spawn Paperdoll</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRAVITY & PHYSICS MODAL -->
+    <div id="gravity-modal" class="modal-backdrop">
+        <div class="max-w-md w-full glass-panel rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-orbitron font-bold text-indigo-300 text-sm"><i class="fa-solid fa-arrow-down mr-2"></i>GRAVITY & PHYSICS</h3>
+                <button onclick="closeModal('gravity-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-xs text-slate-300">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-orbitron">GRAVITY ENABLED</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="gravity-toggle" checked class="sr-only peer" onchange="toggleGravity(this.checked)">
+                        <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-indigo-600 transition"></div>
+                        <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+                    </label>
+                </div>
+                <div>
+                    <label class="block font-orbitron text-indigo-200 mb-1 text-[10px]">GRAVITY STRENGTH</label>
+                    <input type="range" id="gravity-strength" min="1" max="50" value="9.8" step="0.1" class="w-full accent-indigo-500">
+                </div>
+                <div>
+                    <label class="block font-orbitron text-indigo-200 mb-1 text-[10px]">BOUNCE FACTOR</label>
+                    <input type="range" id="bounce-factor" min="0" max="0.95" value="0.6" step="0.05" class="w-full accent-indigo-500">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-orbitron">HAIR SIMULATION</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="hair-sim-toggle" checked class="sr-only peer" onchange="toggleHairSim(this.checked)">
+                        <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-pink-600 transition"></div>
+                        <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-5"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HUMANOID VOXEL MODAL -->
+    <div id="humanoid-modal" class="modal-backdrop">
+        <div class="max-w-2xl w-full glass-panel-pink rounded-3xl p-5 relative modal-content">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-orbitron font-bold text-pink-300 text-sm"><i class="fa-solid fa-user-robot mr-2"></i>HUMANOID VOXEL GRID</h3>
+                <button onclick="closeModal('humanoid-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-slate-300 mb-3">Merge objects into humanoid voxel grids with hair, gravity & pre-animations.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-900/90 p-3 rounded-2xl border border-pink-500/30">
+                    <span class="text-[9px] font-orbitron text-pink-300">VOXEL GRID PREVIEW</span>
+                    <div id="voxel-grid-preview" class="grid grid-cols-8 gap-0.5 mt-2"></div>
+                    <div class="flex space-x-2 mt-2">
+                        <button onclick="generateHumanoidVoxelGrid()" class="px-3 py-1.5 bg-pink-950 hover:bg-pink-900 border border-pink-500/40 rounded-lg text-[9px] font-orbitron text-pink-300 btn-hover">GENERATE</button>
+                        <button onclick="applyHumanoidToSelected()" class="px-3 py-1.5 bg-purple-950 hover:bg-purple-900 border border-purple-500/40 rounded-lg text-[9px] font-orbitron text-purple-300 btn-hover">APPLY TO OBJECT</button>
+                    </div>
+                </div>
+                <div class="space-y-2 text-xs">
+                    <div>
+                        <label class="block font-orbitron text-pink-200 mb-1 text-[10px]">TEMPLATE PRE-ANIMATION</label>
+                        <select id="humanoid-template" class="w-full p-2 bg-slate-900 border border-pink-500/40 rounded-xl text-white text-xs">
+                            <option value="idle">Idle Sway</option>
+                            <option value="walk">Walk Cycle</option>
+                            <option value="run">Run Cycle</option>
+                            <option value="jump">Jump</option>
+                            <option value="dance">Dance Groove</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-orbitron text-pink-200 mb-1 text-[10px]">HAIR LENGTH</label>
+                        <input type="range" id="hair-length-slider" min="0" max="30" value="10" class="w-full accent-pink-500">
+                    </div>
+                    <button onclick="mergeSelectedIntoHumanoid()" class="w-full py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl font-orbitron font-bold text-white text-[10px] btn-hover">
+                        MERGE INTO HUMANOID
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MAIN SCRIPT ==================== -->
+    <script>
+        // ==================== GLOBAL STATE ====================
+        let scene, camera, renderer, orbitControls;
+        let objects = [],
+            selectedObject = null;
+        let raycaster = new THREE.Raycaster(),
+            mouse = new THREE.Vector2();
+        let isPointerDown = false,
+            isDrawing = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        // Camera & safety sphere
+        let safetySphereRadius = 25;
+        let safetySphereMesh;
+        let cameraMinDist = 2,
+            cameraMaxDist = 80;
+
+        // Brush system
+        let brushMode = 'paint';
+        let brushRadius = 0.8;
+        let activeColor = '#ec4899';
+        let brushAlpha = 1.0;
+        let brushCursorMesh;
+        let activeBrushAsset = null;
+        let activeEmojiClass = '👤';
+        let lastStampedPosition = new THREE.Vector3(999, 999, 999);
+
+        // Library
+        let userLibrary = [];
+
+        // Lasso
+        let isLassoDrawing = false;
+        let lassoPoints = [];
+
+        // Audio
+        let audioCtx, analyser, audioDataArray, audioSourceNode, audioElement;
+        let isAudioActive = false;
+        let audioReactivityStrength = 1.0;
+        let audioAnimType = 'scale';
+        let masterAudioOn = true;
+        let particleWavelengthSystem;
+        const particleCount = 500;
+        let particlePositions, particleColors;
+
+        // Gravity & physics
+        let gravityEnabled = true;
+        let gravityStrength = 9.8;
+        let bounceFactor = 0.6;
+        let hairSimEnabled = true;
+        let velocities = new Map();
+
+        // Timeline & keyframes
+        let timelineKeyframes = [];
+        let currentFrame = 0;
+        let totalFrames = 100;
+        let fps = 30;
+        let isRecording = false;
+        let isPlaying = false;
+        let loopPlayback = true;
+        let autoKeyframe = true;
+        let timelinePlayInterval = null;
+        let recordingStartTime = 0;
+
+        // Undo/redo
+        let undoStack = [];
+        let redoStack = [];
+        const MAX_UNDO = 50;
+
+        // Humanoid voxel grid
+        let voxelGridData = [];
+        let humanoidTemplate = 'idle';
+        let hairLength = 10;
+        let humanoidHairParticles = [];
+
+        // Joystick
+        let joystickValue = 0.8;
+        let isDraggingJoystick = false;
+
+        // ==================== INITIALIZATION ====================
+        function initStudio() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x080314, 0.012);
+
+            camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.set(15, 10, 18);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.08;
+            orbitControls.minDistance = cameraMinDist;
+            orbitControls.maxDistance = cameraMaxDist;
+            orbitControls.target.set(0, 0, 0);
+            orbitControls.update();
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+            dirLight.position.set(15, 25, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.1;
+            dirLight.shadow.camera.far = 100;
+            dirLight.shadow.camera.left = -30;
+            dirLight.shadow.camera.right = 30;
+            dirLight.shadow.camera.top = 30;
+            dirLight.shadow.camera.bottom = -30;
+            scene.add(dirLight);
+            const pointLight1 = new THREE.PointLight(0xa855f7, 6, 60);
+            pointLight1.position.set(10, 12, 8);
+            scene.add(pointLight1);
+            const pointLight2 = new THREE.PointLight(0x06b6d4, 4, 40);
+            pointLight2.position.set(-8, 5, -6);
+            scene.add(pointLight2);
+
+            // Ground grid
+            const gridHelper = new THREE.GridHelper(60, 60, 0xa855f7, 0x1e1b4b);
+            gridHelper.position.y = -2;
+            scene.add(gridHelper);
+
+            // Ground plane for shadows/gravity
+            const groundGeo = new THREE.PlaneGeometry(60, 60);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x080314, roughness: 0.8, metalness: 0.2 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -2;
+            ground.receiveShadow = true;
+            ground.userData.isGround = true;
+            scene.add(ground);
+            objects.push(ground);
+
+            // Safety sphere
+            createSafetySphere();
+
+            // Particle wavelength system
+            setupRainbowParticleWavelength();
+
+            // Brush cursor
+            const cursorGeo = new THREE.TorusGeometry(0.5, 0.06, 16, 32);
+            const cursorMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.8 });
+            brushCursorMesh = new THREE.Mesh(cursorGeo, cursorMat);
+            brushCursorMesh.rotation.x = Math.PI / 2;
+            brushCursorMesh.visible = false;
+            scene.add(brushCursorMesh);
+
+            // Farbkreis color wheel
+            initFarbkreisWheel();
+
+            // Initial object
+            spawnGeometry('voxel-cube');
+
+            // Audio waveform display
+            setupWaveformDisplay();
+
+            // Voxel grid preview
+            generateHumanoidVoxelGrid();
+
+            // Timeline track click
+            document.getElementById('timeline-track').addEventListener('click', onTimelineClick);
+            document.getElementById('timeline-track').addEventListener('pointerdown', onTimelinePointerDown);
+
+            // Keyboard shortcuts
+            window.addEventListener('keydown', onKeyDown);
+
+            // Resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Pointer events on canvas
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
+            renderer.domElement.addEventListener('pointerup', onPointerUp);
+
+            // Drag and drop
+            setupDragAndDrop();
+
+            // Start animation loop
+            animate();
+
+            showToast('OmniStage Pro initialized!');
+        }
+
+        // ==================== SAFETY SPHERE ====================
+        function createSafetySphere() {
+            if (safetySphereMesh) scene.remove(safetySphereMesh);
+            const sphereGeo = new THREE.SphereGeometry(safetySphereRadius, 48, 36);
+            const sphereMat = new THREE.MeshBasicMaterial({
+                color: 0x10b981,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
+            });
+            safetySphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+            safetySphereMesh.position.set(0, 0, 0);
+            scene.add(safetySphereMesh);
+        }
+
+        function updateSafetySphere(val) {
+            safetySphereRadius = parseFloat(val);
+            document.getElementById('safety-sphere-radius-display').textContent = safetySphereRadius.toFixed(1);
+            createSafetySphere();
+            clampObjectsToSafetySphere();
+            showToast('Safety sphere radius: ' + safetySphereRadius);
+        }
+
+        function clampObjectsToSafetySphere() {
+            objects.forEach(obj => {
+                if (obj.userData.isGround) return;
+                const dist = obj.position.length();
+                if (dist > safetySphereRadius - 0.5) {
+                    const dir = obj.position.clone().normalize();
+                    obj.position.copy(dir.multiplyScalar(safetySphereRadius - 0.5));
+                    const vel = velocities.get(obj.id);
+                    if (vel) {
+                        const bounceDir = obj.position.clone().normalize();
+                        vel.reflect(bounceDir).multiplyScalar(bounceFactor);
+                    }
+                }
+            });
+        }
+
+        // ==================== FARBKREIS COLOR WHEEL ====================
+        function initFarbkreisWheel() {
+            const canvas = document.getElementById('farbkreis-canvas');
+            const ctx = canvas.getContext('2d');
+            const radius = canvas.width / 2;
+            for (let x = 0; x < canvas.width; x++) {
+                for (let y = 0; y < canvas.height; y++) {
+                    const dx = x - radius,
+                        dy = y - radius;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist <= radius) {
+                        const angle = Math.atan2(dy, dx);
+                        const hue = (angle * 180 / Math.PI + 360) % 360;
+                        const sat = dist / radius;
+                        ctx.fillStyle = `hsl(${hue}, ${sat * 100}%, 50%)`;
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+            }
+            canvas.addEventListener('pointerdown', (e) => {
+                pickFarbkreisColor(e, canvas);
+                window.addEventListener('pointermove', onFarbkreisMove);
+                window.addEventListener('pointerup', onFarbkreisUp);
+            });
+        }
+
+        function onFarbkreisMove(e) {
+            pickFarbkreisColor(e, document.getElementById('farbkreis-canvas'));
+        }
+
+        function onFarbkreisUp() {
+            window.removeEventListener('pointermove', onFarbkreisMove);
+            window.removeEventListener('pointerup', onFarbkreisUp);
+        }
+
+        function pickFarbkreisColor(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const radius = canvas.width / 2;
+            const dx = x - radius,
+                dy = y - radius;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist <= radius) {
+                const angle = Math.atan2(dy, dx);
+                const hue = (angle * 180 / Math.PI + 360) % 360;
+                const sat = dist / radius;
+                const color = new THREE.Color().setHSL(hue / 360, sat, 0.5);
+                const hex = '#' + color.getHexString();
+                activeColor = hex;
+                document.getElementById('active-color-preview').style.backgroundColor = hex;
+                document.getElementById('active-hex-display').value = hex;
+                const cursor = document.getElementById('farbkreis-cursor');
+                cursor.style.left = `${(x / canvas.width) * 100}%`;
+                cursor.style.top = `${(y / canvas.height) * 100}%`;
+            }
+        }
+
+        function updateAlpha(val) {
+            brushAlpha = parseFloat(val);
+            document.getElementById('alpha-val-display').textContent = brushAlpha.toFixed(2);
+        }
+
+        // ==================== PARTICLE WAVELENGTH ====================
+        function setupRainbowParticleWavelength() {
+            const geometry = new THREE.BufferGeometry();
+            particlePositions = new Float32Array(particleCount * 3);
+            particleColors = new Float32Array(particleCount * 3);
+            for (let i = 0; i < particleCount; i++) {
+                particlePositions[i * 3] = (Math.random() - 0.5) * 30;
+                particlePositions[i * 3 + 1] = Math.random() * 10 - 2;
+                particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+                const color = new THREE.Color();
+                color.setHSL(i / particleCount, 1.0, 0.55);
+                particleColors[i * 3] = color.r;
+                particleColors[i * 3 + 1] = color.g;
+                particleColors[i * 3 + 2] = color.b;
+            }
+            geometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+            const material = new THREE.PointsMaterial({ size: 0.25, vertexColors: true, transparent: true, opacity: 0.75,
+                blending: THREE.AdditiveBlending });
+            particleWavelengthSystem = new THREE.Points(geometry, material);
+            scene.add(particleWavelengthSystem);
+        }
+
+        // ==================== WAVEFORM DISPLAY ====================
+        function setupWaveformDisplay() {
+            const container = document.getElementById('audio-waveform-container');
+            for (let i = 0; i < 32; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'audio-wave-bar bg-cyan-500/70 rounded-sm';
+                bar.style.width = '3px';
+                bar.style.height = '4px';
+                bar.id = 'wave-bar-' + i;
+                container.appendChild(bar);
+            }
+            const freqContainer = document.getElementById('audio-frequency-display');
+            for (let i = 0; i < 24; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'audio-wave-bar bg-rose-500/70 rounded-sm';
+                bar.style.width = '3px';
+                bar.style.height = '4px';
+                bar.id = 'freq-bar-' + i;
+                freqContainer.appendChild(bar);
+            }
+        }
+
+        // ==================== BRUSH SYSTEM ====================
+        function setBrushMode(mode) {
+            brushMode = mode;
+            const badge = document.getElementById('active-brush-badge');
+            const labels = { paint: 'PAINT', eraser: 'ERASE', stamp: 'STAMP', lasso: 'LASSO', sculpt: 'SCULPT',
+                smooth: 'SMOOTH', grow: 'GROW', shrink: 'SHRINK' };
+            badge.textContent = labels[mode] || mode.toUpperCase();
+            showToast('Brush Mode: ' + (labels[mode] || mode.toUpperCase()));
+        }
+
+        function selectEmojiBrush(emoji) {
+            activeEmojiClass = emoji;
+            showToast('Selected Paperdoll/Emoji: ' + emoji);
+        }
+
+        // ==================== POINTER EVENTS ====================
+        function onPointerDown(event) {
+            if (event.button !== 0 && event.pointerType === 'mouse') return;
+            if (event.target !== renderer.domElement) return;
+            if (event.clientY < 55 || event.clientY > window.innerHeight - 60) return;
+
+            isPointerDown = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (brushMode === 'lasso') {
+                isLassoDrawing = true;
+                lassoPoints = [{ x: event.clientX, y: event.clientY }];
+                renderLassoCanvas();
+                return;
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects.filter(o => !o.userData.isGround), true);
+
+            if (intersects.length > 0) {
+                let rootObj = intersects[0].object;
+                while (rootObj.parent && rootObj.parent !== scene) rootObj = rootObj.parent;
+                selectedObject = rootObj;
+                isDrawing = true;
+                pushUndoState();
+                applyBrushAction(intersects[0]);
+                if (isRecording && autoKeyframe) captureKeyframe();
+            } else {
+                isDrawing = false;
+            }
+        }
+
+        function onPointerMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            if (isLassoDrawing && brushMode === 'lasso') {
+                lassoPoints.push({ x: event.clientX, y: event.clientY });
+                renderLassoCanvas();
+                return;
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects.filter(o => !o.userData.isGround), true);
+
+            if (intersects.length > 0) {
+                brushCursorMesh.position.copy(intersects[0].point);
+                brushCursorMesh.visible = true;
+                if (isPointerDown && isDrawing) {
+                    applyBrushAction(intersects[0]);
+                    if (isRecording && autoKeyframe) captureKeyframe();
+                }
+            } else {
+                brushCursorMesh.visible = false;
+            }
+        }
+
+        function onPointerUp() {
+            if (isLassoDrawing && brushMode === 'lasso') {
+                isLassoDrawing = false;
+                executeMagnetoCrop();
+                clearLassoCanvas();
+            }
+            isPointerDown = false;
+            isDrawing = false;
+        }
+
+        // ==================== LASSO SYSTEM ====================
+        function renderLassoCanvas() {
+            const canvas = document.getElementById('lasso-canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (lassoPoints.length < 2) return;
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath();
+            ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+            for (let i = 1; i < lassoPoints.length; i++) ctx.lineTo(lassoPoints[i].x, lassoPoints[i].y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function clearLassoCanvas() {
+            const canvas = document.getElementById('lasso-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function executeMagnetoCrop() {
+            if (!selectedObject) { showToast('Select an object first!'); return; }
+            const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+            if (!mesh || !mesh.geometry.attributes.position) return;
+            const geometry = mesh.geometry;
+            const posAttr = geometry.attributes.position;
+            const newPositions = [];
+            const vWorld = new THREE.Vector3();
+            for (let i = 0; i < posAttr.count; i++) {
+                vWorld.fromBufferAttribute(posAttr, i).applyMatrix4(mesh.matrixWorld);
+                const vProj = vWorld.clone().project(camera);
+                const sx = (vProj.x + 1) * window.innerWidth / 2;
+                const sy = (-vProj.y + 1) * window.innerHeight / 2;
+                if (isPointInsidePolygon({ x: sx, y: sy }, lassoPoints)) {
+                    newPositions.push(vWorld.x, vWorld.y, vWorld.z);
+                }
+            }
+            if (newPositions.length > 9) {
+                const croppedGeo = new THREE.BufferGeometry();
+                croppedGeo.setAttribute('position', new THREE.Float32BufferAttribute(newPositions, 3));
+                croppedGeo.computeVertexNormals();
+                const croppedMat = new THREE.MeshStandardMaterial({ color: activeColor, roughness: 0.2, metalness: 0.8,
+                    transparent: true, opacity: brushAlpha });
+                const croppedMesh = new THREE.Mesh(croppedGeo, croppedMat);
+                croppedMesh.position.set(0.5, 0.5, 0);
+                croppedMesh.castShadow = true;
+                croppedMesh.receiveShadow = true;
+                scene.add(croppedMesh);
+                objects.push(croppedMesh);
+                selectedObject = croppedMesh;
+                pushUndoState();
+                showToast('Lasso crop complete!');
+            } else {
+                showToast('No vertices inside lasso.');
+            }
+        }
+
+        function isPointInsidePolygon(point, polygon) {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i].x,
+                    yi = polygon[i].y;
+                const xj = polygon[j].x,
+                    yj = polygon[j].y;
+                const intersect = ((yi > point.y) !== (yj > point.y)) && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) +
+                    xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // ==================== BRUSH ACTIONS ====================
+        function applyBrushAction(intersect) {
+            if (!selectedObject || !intersect) return;
+            const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+            if (!mesh) return;
+
+            const geometry = mesh.geometry;
+            const posAttr = geometry.attributes.position;
+            if (!posAttr) return;
+            const localHit = intersect.point.clone().applyMatrix4(new THREE.Matrix4().copy(mesh.matrixWorld).invert());
+            const vPos = new THREE.Vector3();
+
+            if (brushMode === 'paint') {
+                if (!geometry.attributes.color) {
+                    const colors = new Float32Array(posAttr.count * 3);
+                    for (let i = 0; i < posAttr.count; i++) { colors[i * 3] = 1;
+                        colors[i * 3 + 1] = 1;
+                        colors[i * 3 + 2] = 1; }
+                    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                    mesh.material.vertexColors = true;
+                    mesh.material.needsUpdate = true;
+                }
+                const colorAttr = geometry.attributes.color;
+                const targetColor = new THREE.Color(activeColor);
+                for (let i = 0; i < posAttr.count; i++) {
+                    vPos.fromBufferAttribute(posAttr, i);
+                    if (vPos.distanceTo(localHit) < brushRadius) {
+                        const curCol = new THREE.Color(colorAttr.getX(i), colorAttr.getY(i), colorAttr.getZ(i));
+                        curCol.lerp(targetColor, brushAlpha);
+                        colorAttr.setXYZ(i, curCol.r, curCol.g, curCol.b);
+                    }
+                }
+                colorAttr.needsUpdate = true;
+            } else if (brushMode === 'eraser') {
+                if (objects.length > 2 && mesh !== objects[0] && mesh.userData.isStamped !== true) {
+                    scene.remove(selectedObject);
+                    objects = objects.filter(o => o !== selectedObject);
+                    selectedObject = objects.find(o => !o.userData.isGround) || objects[0];
+                    showToast('Erased object!');
+                } else {
+                    mesh.material.transparent = true;
+                    mesh.material.opacity = Math.max(0.05, mesh.material.opacity - 0.15);
+                    mesh.material.needsUpdate = true;
+                }
+            } else if (brushMode === 'stamp') {
+                if (intersect.point.distanceTo(lastStampedPosition) > 0.5) {
+                    const stampGeo = activeBrushAsset ? activeBrushAsset.geometry.clone() : new THREE.SphereGeometry(0.6, 12,
+                        12);
+                    const stampMat = new THREE.MeshStandardMaterial({ color: activeColor, roughness: 0.3, metalness: 0.7,
+                        transparent: true, opacity: brushAlpha });
+                    const stampMesh = new THREE.Mesh(stampGeo, stampMat);
+                    stampMesh.position.copy(intersect.point);
+                    stampMesh.castShadow = true;
+                    stampMesh.receiveShadow = true;
+                    stampMesh.userData.isStamped = true;
+                    scene.add(stampMesh);
+                    objects.push(stampMesh);
+                    lastStampedPosition.copy(intersect.point);
+                    if (!velocities.has(stampMesh.id)) velocities.set(stampMesh.id, new THREE.Vector3(0, 0, 0));
+                }
+            } else if (brushMode === 'sculpt') {
+                const positions = geometry.attributes.position;
+                for (let i = 0; i < positions.count; i++) {
+                    vPos.fromBufferAttribute(positions, i);
+                    const dist = vPos.distanceTo(localHit);
+                    if (dist < brushRadius) {
+                        const normal = vPos.clone().normalize();
+                        const offset = normal.multiplyScalar(brushRadius * 0.3 * (1 - dist / brushRadius));
+                        vPos.add(offset);
+                        positions.setXYZ(i, vPos.x, vPos.y, vPos.z);
+                    }
+                }
+                positions.needsUpdate = true;
+                geometry.computeVertexNormals();
+            } else if (brushMode === 'smooth') {
+                const positions = geometry.attributes.position;
+                const smoothArr = new Float32Array(positions.count * 3);
+                for (let i = 0; i < positions.count; i++) {
+                    vPos.fromBufferAttribute(positions, i);
+                    if (vPos.distanceTo(localHit) < brushRadius) {
+                        const avg = new THREE.Vector3(0, 0, 0);
+                        let count = 0;
+                        for (let j = 0; j < positions.count; j++) {
+                            const neighbor = new THREE.Vector3().fromBufferAttribute(positions, j);
+                            if (j !== i && neighbor.distanceTo(vPos) < brushRadius * 1.5) { avg.add(neighbor);
+                                count++; }
+                        }
+                        if (count > 0) { avg.divideScalar(count);
+                            vPos.lerp(avg, 0.3); }
+                    }
+                    smoothArr[i * 3] = vPos.x;
+                    smoothArr[i * 3 + 1] = vPos.y;
+                    smoothArr[i * 3 + 2] = vPos.z;
+                }
+                positions.array.set(smoothArr);
+                positions.needsUpdate = true;
+                geometry.computeVertexNormals();
+            } else if (brushMode === 'grow') {
+                const scale = selectedObject.scale.clone().multiplyScalar(1 + brushRadius * 0.15);
+                selectedObject.scale.copy(scale);
+            } else if (brushMode === 'shrink') {
+                const scale = selectedObject.scale.clone().multiplyScalar(Math.max(0.1, 1 - brushRadius * 0.15));
+                selectedObject.scale.copy(scale);
+            }
+        }
+
+        // ==================== GEOMETRY SPAWNING ====================
+        function spawnGeometry(type) {
+            let geometry, color = activeColor;
+            switch (type) {
+                case 'voxel-cube':
+                    geometry = new THREE.BoxGeometry(2, 2, 2, 24, 24, 24);
+                    break;
+                case 'morphic-sphere':
+                    geometry = new THREE.SphereGeometry(1.5, 36, 36);
+                    break;
+                case 'torus-knot':
+                    geometry = new THREE.TorusKnotGeometry(1.2, 0.35, 64, 8);
+                    break;
+                case 'icosahedron':
+                    geometry = new THREE.IcosahedronGeometry(1.3, 2);
+                    break;
+                default:
+                    geometry = new THREE.BoxGeometry(2, 2, 2, 16, 16, 16);
+            }
+            const material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.25, metalness: 0.75,
+                transparent: true, opacity: brushAlpha });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(0, 0, 0);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            objects.push(mesh);
+            selectedObject = mesh;
+            if (!velocities.has(mesh.id)) velocities.set(mesh.id, new THREE.Vector3(0, 0, 0));
+            pushUndoState();
+            closeModal('sculpt-modal');
+            showToast('Spawned: ' + type);
+        }
+
+        function spawnPaperdoll(emoji) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.font = '80px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, 64, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.minFilter = THREE.LinearFilter;
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(2.5, 2.5, 1);
+            sprite.position.set(0, 1, 0);
+            sprite.userData.isPaperdoll = true;
+            sprite.userData.emoji = emoji;
+            scene.add(sprite);
+            objects.push(sprite);
+            selectedObject = sprite;
+            if (!velocities.has(sprite.id)) velocities.set(sprite.id, new THREE.Vector3(0, 0, 0));
+            pushUndoState();
+            showToast('Spawned paperdoll: ' + emoji);
+        }
+
+        // ==================== FILE UPLOAD SYSTEM ====================
+        function setupDragAndDrop() {
+            window.addEventListener('dragover', (e) => e.preventDefault());
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (e.dataTransfer.files.length > 0) {
+                    handleFiles(e.dataTransfer.files, new THREE.Vector3(0, 1, 0));
+                }
+            });
+        }
+
+        function handleFileUpload(event) {
+            if (event.target.files.length > 0) {
+                handleFiles(event.target.files, new THREE.Vector3(0, 1, 0));
+            }
+        }
+
+        function handleFiles(files, spawnPos) {
+            Array.from(files).forEach(file => {
+                const ext = file.name.split('.').pop().toLowerCase();
+                const url = URL.createObjectURL(file);
+                if (ext === 'glb' || ext === 'gltf') {
+                    const loader = new THREE.GLTFLoader();
+                    loader.load(url, (gltf) => {
+                        const model = gltf.scene;
+                        model.scale.set(2, 2, 2);
+                        model.position.copy(spawnPos);
+                        model.traverse(child => { if (child.isMesh) { child.castShadow = true;
+                                child.receiveShadow = true; } });
+                        scene.add(model);
+                        objects.push(model);
+                        selectedObject = model;
+                        activeBrushAsset = model;
+                        pushUndoState();
+                        showToast('GLB loaded as 3D asset!');
+                    });
+                } else if (['mp3', 'wav', 'm4a'].includes(ext)) {
+                    loadAudioReactivityFile(file);
+                } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+                    const texture = new THREE.TextureLoader().load(url);
+                    const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.4, metalness: 0.3,
+                        transparent: true, opacity: brushAlpha });
+                    const planeGeo = new THREE.PlaneGeometry(3, 3);
+                    const plane = new THREE.Mesh(planeGeo, material);
+                    plane.position.copy(spawnPos);
+                    plane.userData.isImagePlane = true;
+                    scene.add(plane);
+                    objects.push(plane);
+                    selectedObject = plane;
+                    pushUndoState();
+                    showToast('Image spawned as 2D plane!');
+                } else if (ext === 'mp4') {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.loop = true;
+                    video.muted = false;
+                    video.playsInline = true;
+                    video.play().catch(() => {});
+                    const videoTex = new THREE.VideoTexture(video);
+                    const material = new THREE.MeshStandardMaterial({ map: videoTex, roughness: 0.3, metalness: 0.2 });
+                    const planeGeo = new THREE.PlaneGeometry(4, 2.25);
+                    const plane = new THREE.Mesh(planeGeo, material);
+                    plane.position.copy(spawnPos);
+                    plane.userData.isVideoPlane = true;
+                    plane.userData.video = video;
+                    plane.userData.videoTex = videoTex;
+                    scene.add(plane);
+                    objects.push(plane);
+                    selectedObject = plane;
+                    pushUndoState();
+                    showToast('MP4 video spawned as plane!');
+                } else if (['html', 'txt'].includes(ext)) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target.result;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 512;
+                        canvas.height = 512;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#0a0a1a';
+                        ctx.fillRect(0, 0, 512, 512);
+                        ctx.fillStyle = '#e0e0ff';
+                        ctx.font = '20px monospace';
+                        const lines = content.substring(0, 800).split('\n');
+                        lines.forEach((line, i) => { if (i < 20) ctx.fillText(line.substring(0, 40), 20, 30 + i * 24); });
+                        const texture = new THREE.CanvasTexture(canvas);
+                        const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.5 });
+                        const planeGeo = new THREE.PlaneGeometry(3, 3);
+                        const plane = new THREE.Mesh(planeGeo, material);
+                        plane.position.copy(spawnPos);
+                        plane.userData.isDataPlane = true;
+                        plane.userData.content = content;
+                        scene.add(plane);
+                        objects.push(plane);
+                        selectedObject = plane;
+                        pushUndoState();
+                        showToast(ext.toUpperCase() + ' file spawned as readable plane!');
+                    };
+                    reader.readAsText(file);
+                } else if (ext === 'pdf') {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 512;
+                    canvas.height = 512;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#1a1a2a';
+                    ctx.fillRect(0, 0, 512, 512);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 28px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('📄 PDF FILE', 256, 240);
+                    ctx.font = '16px sans-serif';
+                    ctx.fillText(file.name, 256, 280);
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.5 });
+                    const planeGeo = new THREE.PlaneGeometry(3, 3);
+                    const plane = new THREE.Mesh(planeGeo, material);
+                    plane.position.copy(spawnPos);
+                    plane.userData.isPdfPlane = true;
+                    scene.add(plane);
+                    objects.push(plane);
+                    selectedObject = plane;
+                    pushUndoState();
+                    showToast('PDF file spawned as display panel!');
+                }
+            });
+        }
+
+        // ==================== SKIN APPLICATION ====================
+        let pendingSkinTexture = null;
+
+        function handleSkinUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            const url = URL.createObjectURL(file);
+            if (['png', 'jpg', 'jpeg'].includes(ext)) {
+                pendingSkinTexture = new THREE.TextureLoader().load(url);
+                showToast('Image skin ready — click Apply!');
+            } else if (ext === 'mp4') {
+                const video = document.createElement('video');
+                video.src = url;
+                video.loop = true;
+                video.muted = true;
+                video.playsInline = true;
+                video.play().catch(() => {});
+                pendingSkinTexture = new THREE.VideoTexture(video);
+                showToast('Video skin ready — click Apply!');
+            } else if (['html', 'txt'].includes(ext)) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 512;
+                    canvas.height = 512;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#0a0a1a';
+                    ctx.fillRect(0, 0, 512, 512);
+                    ctx.fillStyle = '#e0e0ff';
+                    ctx.font = '18px monospace';
+                    const lines = e.target.result.substring(0, 800).split('\n');
+                    lines.forEach((line, i) => { if (i < 22) ctx.fillText(line.substring(0, 45), 15, 25 + i * 22); });
+                    pendingSkinTexture = new THREE.CanvasTexture(canvas);
+                    showToast('Text skin ready — click Apply!');
+                };
+                reader.readAsText(file);
+            } else if (ext === 'pdf') {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#1a1a2a';
+                ctx.fillRect(0, 0, 512, 512);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 28px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('📄 PDF SKIN', 256, 240);
+                ctx.font = '16px sans-serif';
+                ctx.fillText(file.name, 256, 280);
+                pendingSkinTexture = new THREE.CanvasTexture(canvas);
+                showToast('PDF skin ready — click Apply!');
+            }
+        }
+
+        function applySkinToSelected() {
+            if (!selectedObject) { showToast('Select an object first!'); return; }
+            if (!pendingSkinTexture) { showToast('Upload a skin file first!'); return; }
+            const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+            if (mesh) {
+                mesh.material.map = pendingSkinTexture;
+                mesh.material.needsUpdate = true;
+                showToast('Skin applied to selected object!');
+            } else if (selectedObject.isSprite) {
+                selectedObject.material.map = pendingSkinTexture;
+                selectedObject.material.needsUpdate = true;
+                showToast('Skin applied to paperdoll!');
+            }
+            closeModal('material-modal');
+        }
+
+        // ==================== AUDIO SYSTEM ====================
+        function loadAudioReactivity(event) {
+            const file = event.target.files[0];
+            if (file) loadAudioReactivityFile(file);
+        }
+
+        function loadAudioReactivityFile(file) {
+            const url = URL.createObjectURL(file);
+            audioElement = document.getElementById('background-media-audio');
+            audioElement.src = url;
+            audioElement.loop = true;
+            audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 128;
+            try {
+                audioSourceNode = audioCtx.createMediaElementSource(audioElement);
+                audioSourceNode.connect(analyser);
+                analyser.connect(audioCtx.destination);
+            } catch (e) { console.warn(e); }
+            audioDataArray = new Uint8Array(analyser.frequencyBinCount);
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            audioElement.play().then(() => {
+                isAudioActive = true;
+                document.getElementById('audio-status-display').textContent = 'ACTIVE: Rainbow Wavelength Particles Synced!';
+                showToast('Audio loaded and playing!');
+            }).catch(() => {
+                isAudioActive = true;
+                document.getElementById('audio-status-display').textContent = 'Audio loaded (click to play)';
+            });
+        }
+
+        function toggleMasterAudio(on) {
+            masterAudioOn = on;
+            if (audioElement) audioElement.muted = !on;
+            showToast('Master audio ' + (on ? 'ON' : 'OFF'));
+        }
+
+        function updateAudioReactivity(val) {
+            audioReactivityStrength = parseFloat(val) / 100;
+            showToast('Audio reactivity: ' + val + '%');
+        }
+
+        function updateAudioAnimType() {
+            audioAnimType = document.getElementById('audio-anim-type').value;
+        }
+
+        // ==================== GRAVITY SYSTEM ====================
+        function toggleGravity(on) {
+            gravityEnabled = on;
+            showToast('Gravity ' + (on ? 'ENABLED' : 'DISABLED'));
+        }
+
+        function toggleHairSim(on) {
+            hairSimEnabled = on;
+            showToast('Hair simulation ' + (on ? 'ON' : 'OFF'));
+        }
+
+        // ==================== UNDO/REDO SYSTEM ====================
+        function pushUndoState() {
+            const state = objects.map(obj => ({
+                id: obj.id,
+                position: obj.position.clone(),
+                scale: obj.scale.clone(),
+                rotation: obj.rotation.clone(),
+                opacity: obj.material && obj.material.opacity ? obj.material.opacity : 1,
+                visible: obj.visible
+            }));
+            undoStack.push(state);
+            if (undoStack.length > MAX_UNDO) undoStack.shift();
+            redoStack = [];
+        }
+
+        function undoAction() {
+            if (undoStack.length === 0) { showToast('Nothing to undo'); return; }
+            const state = undoStack.pop();
+            redoStack.push(state);
+            applyStateToObjects(state);
+            showToast('Undo');
+        }
+
+        function redoAction() {
+            if (redoStack.length === 0) { showToast('Nothing to redo'); return; }
+            const state = redoStack.pop();
+            undoStack.push(state);
+            applyStateToObjects(state);
+            showToast('Redo');
+        }
+
+        function applyStateToObjects(state) {
+            state.forEach(saved => {
+                const obj = objects.find(o => o.id === saved.id);
+                if (obj && !obj.userData.isGround) {
+                    obj.position.copy(saved.position);
+                    obj.scale.copy(saved.scale);
+                    obj.rotation.copy(saved.rotation);
+                    if (obj.material) obj.material.opacity = saved.opacity;
+                    obj.visible = saved.visible;
+                }
+            });
+        }
+
+        function onKeyDown(e) {
+            if (e.ctrlKey && e.key === 'z') { e.preventDefault();
+                undoAction(); }
+            if (e.ctrlKey && e.key === 'y') { e.preventDefault();
+                redoAction(); }
+            if (e.key === 'r' && !e.ctrlKey) { if (!isRecording) startRecording();
+                else stopRecording(); }
+            if (e.key === ' ') { e.preventDefault(); if (isPlaying) pauseTimeline();
+                else playTimeline(); }
+            if (e.key === 'Escape') { closeAllModals(); }
+        }
+
+        function closeAllModals() {
+            document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
+        }
+
+        // ==================== TIMELINE & KEYFRAMES ====================
+        function onTimelineClick(e) {
+            const track = document.getElementById('timeline-track');
+            const rect = track.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            currentFrame = Math.round(pct * totalFrames);
+            updateTimelineMarker();
+            updateFrameDisplay();
+        }
+
+        let isTimelineDragging = false;
+
+        function onTimelinePointerDown(e) {
+            isTimelineDragging = true;
+            window.addEventListener('pointermove', onTimelineDrag);
+            window.addEventListener('pointerup', onTimelineDragEnd);
+        }
+
+        function onTimelineDrag(e) {
+            if (!isTimelineDragging) return;
+            const track = document.getElementById('timeline-track');
+            const rect = track.getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            currentFrame = Math.round(pct * totalFrames);
+            updateTimelineMarker();
+            updateFrameDisplay();
+            if (isRecording) captureKeyframe();
+        }
+
+        function onTimelineDragEnd() {
+            isTimelineDragging = false;
+            window.removeEventListener('pointermove', onTimelineDrag);
+            window.removeEventListener('pointerup', onTimelineDragEnd);
+        }
+
+        function updateTimelineMarker() {
+            const marker = document.getElementById('timeline-marker');
+            const pct = (currentFrame / totalFrames) * 100;
+            marker.style.left = pct + '%';
+        }
+
+        function updateFrameDisplay() {
+            document.getElementById('current-frame-display').textContent = currentFrame;
+            document.getElementById('total-frames-display').textContent = totalFrames;
+            document.getElementById('timeline-status-display').textContent =
+                isRecording ? '🔴 Recording...' : isPlaying ? '▶️ Playing...' : 'Idle';
+        }
+
+        function addKeyframe() {
+            captureKeyframe();
+            renderTimelineKeyframes();
+            showToast('Keyframe added at frame ' + currentFrame);
+        }
+
+        function captureKeyframe() {
+            if (!selectedObject) return;
+            const kf = {
+                frame: currentFrame,
+                position: selectedObject.position.clone(),
+                scale: selectedObject.scale.clone(),
+                rotation: selectedObject.rotation.clone(),
+                opacity: selectedObject.material ? selectedObject.material.opacity : 1,
+                objectId: selectedObject.id,
+                emoji: activeEmojiClass
+            };
+            timelineKeyframes.push(kf);
+            timelineKeyframes.sort((a, b) => a.frame - b.frame);
+            if (isRecording) renderTimelineKeyframes();
+        }
+
+        function deleteKeyframe() {
+            if (timelineKeyframes.length === 0) return;
+            timelineKeyframes = timelineKeyframes.filter(kf => kf.frame !== currentFrame);
+            renderTimelineKeyframes();
+            showToast('Keyframes at frame ' + currentFrame + ' deleted');
+        }
+
+        function renderTimelineKeyframes() {
+            const container = document.getElementById('timeline-keyframes');
+            container.innerHTML = '';
+            timelineKeyframes.forEach(kf => {
+                const dot = document.createElement('div');
+                dot.className = 'keyframe-dot' + (kf.frame === currentFrame ? ' active' : '');
+                dot.style.left = ((kf.frame / totalFrames) * 100) + '%';
+                dot.style.top = '50%';
+                dot.style.transform = 'translate(-50%, -50%)';
+                dot.title = 'Frame: ' + kf.frame;
+                dot.onclick = (e) => { e.stopPropagation();
+                    currentFrame = kf.frame;
+                    updateTimelineMarker();
+                    updateFrameDisplay(); };
+                container.appendChild(dot);
+            });
+        }
+
+        function startRecording() {
+            isRecording = true;
+            recordingStartTime = Date.now();
+            document.getElementById('timeline-status-display').textContent = '🔴 Recording...';
+            document.getElementById('record-btn').style.boxShadow = '0 0 20px #f43f5e';
+            showToast('Recording started!');
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            document.getElementById('timeline-status-display').textContent = 'Recording stopped';
+            document.getElementById('record-btn').style.boxShadow = '';
+            showToast('Recording stopped. ' + timelineKeyframes.length + ' keyframes captured.');
+        }
+
+        function playTimeline() {
+            if (timelineKeyframes.length === 0) { showToast('No keyframes to play!'); return; }
+            isPlaying = true;
+            currentFrame = 0;
+            updateTimelineMarker();
+            updateFrameDisplay();
+            const fpsVal = parseInt(document.getElementById('fps-input').value) || 30;
+            fps = fpsVal;
+            const frameInterval = 1000 / fps;
+            timelinePlayInterval = setInterval(() => {
+                if (!isPlaying) { clearInterval(timelinePlayInterval); return; }
+                currentFrame++;
+                if (currentFrame > totalFrames) {
+                    if (loopPlayback) { currentFrame = 0; } else { pauseTimeline(); return; }
+                }
+                updateTimelineMarker();
+                updateFrameDisplay();
+                applyKeyframeAtFrame(currentFrame);
+            }, frameInterval);
+            document.getElementById('play-btn').style.boxShadow = '0 0 20px #10b981';
+            showToast('Playing timeline...');
+        }
+
+        function pauseTimeline() {
+            isPlaying = false;
+            if (timelinePlayInterval) clearInterval(timelinePlayInterval);
+            document.getElementById('play-btn').style.boxShadow = '';
+            document.getElementById('timeline-status-display').textContent = 'Paused';
+        }
+
+        function stopTimeline() {
+            isPlaying = false;
+            if (timelinePlayInterval) clearInterval(timelinePlayInterval);
+            currentFrame = 0;
+            updateTimelineMarker();
+            updateFrameDisplay();
+            document.getElementById('play-btn').style.boxShadow = '';
+            document.getElementById('timeline-status-display').textContent = 'Stopped';
+            showToast('Timeline stopped');
+        }
+
+        function applyKeyframeAtFrame(frame) {
+            const kf = timelineKeyframes.find(k => k.frame === frame);
+            if (kf) {
+                const obj = objects.find(o => o.id === kf.objectId);
+                if (obj) {
+                    obj.position.copy(kf.position);
+                    obj.scale.copy(kf.scale);
+                    obj.rotation.copy(kf.rotation);
+                    if (obj.material) obj.material.opacity = kf.opacity;
+                }
+            }
+            // Interpolate between keyframes
+            const prevKf = [...timelineKeyframes].reverse().find(k => k.frame <= frame);
+            const nextKf = timelineKeyframes.find(k => k.frame > frame);
+            if (prevKf && nextKf) {
+                const t = (frame - prevKf.frame) / (nextKf.frame - prevKf.frame);
+                const obj = objects.find(o => o.id === prevKf.objectId);
+                if (obj && obj.id === nextKf.objectId) {
+                    obj.position.lerpVectors(prevKf.position, nextKf.position, t);
+                    obj.scale.lerpVectors(prevKf.scale, nextKf.scale, t);
+                    obj.rotation.set(
+                        prevKf.rotation.x + (nextKf.rotation.x - prevKf.rotation.x) * t,
+                        prevKf.rotation.y + (nextKf.rotation.y - prevKf.rotation.y) * t,
+                        prevKf.rotation.z + (nextKf.rotation.z - prevKf.rotation.z) * t
+                    );
+                }
+            }
+        }
+
+        // ==================== LIBRARY SYSTEM ====================
+        function saveAssetToLibrary() {
+            if (!selectedObject) { showToast('No object selected!'); return; }
+            renderer.render(scene, camera);
+            const preview = renderer.domElement.toDataURL('image/png');
+            const title = document.getElementById('asset-title-input').value;
+            const emoji = document.getElementById('asset-emoji-input').value;
+            activeBrushAsset = selectedObject;
+            userLibrary.push({ title, emoji, preview, object: selectedObject, id: Date.now() });
+            renderLibraryGrid();
+            renderInlineLibraryPalette();
+            closeModal('save-asset-modal');
+            showToast('Saved to library & equipped as brush!');
+        }
+
+        function renderInlineLibraryPalette() {
+            const palette = document.getElementById('inline-asset-palette');
+            userLibrary.forEach((item) => {
+                const btn = document.createElement('button');
+                btn.className = 'text-xs p-0.5 bg-slate-900 hover:bg-purple-900 rounded border border-purple-500/40 flex items-center justify-center btn-hover';
+                btn.textContent = item.emoji;
+                btn.title = item.title;
+                btn.onclick = () => {
+                    activeBrushAsset = item.object;
+                    activeEmojiClass = item.emoji;
+                    setBrushMode('stamp');
+                };
+                palette.appendChild(btn);
+            });
+        }
+
+        function renderLibraryGrid() {
+            const grid = document.getElementById('library-grid');
+            grid.innerHTML = '';
+            userLibrary.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'glass-panel p-3 rounded-2xl flex flex-col items-center text-center space-y-1.5';
+                card.innerHTML = `
+                    <div class="w-full h-28 bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden border border-purple-500/30 relative">
+                        <span class="absolute top-1 left-1 text-sm bg-slate-950/80 px-1.5 py-0.5 rounded">${item.emoji}</span>
+                        <img src="${item.preview}" class="w-full h-full object-cover">
+                    </div>
+                    <span class="font-orbitron font-bold text-[10px] text-purple-200">${item.title}</span>
+                    <div class="grid grid-cols-2 gap-1 w-full">
+                        <button onclick="useAsBrush(${index})" class="py-1 bg-pink-950 hover:bg-pink-900 border border-pink-500/40 rounded-lg text-[9px] font-orbitron text-pink-300 col-span-2 btn-hover">EQUIP BRUSH</button>
+                        <button onclick="downloadGLB(${index})" class="py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-500/40 rounded-lg text-[9px] font-orbitron text-emerald-300 btn-hover">GLB</button>
+                        <button onclick="downloadReact(${index})" class="py-1 bg-purple-950 hover:bg-purple-900 border border-purple-500/40 rounded-lg text-[9px] font-orbitron text-purple-300 btn-hover">JSX</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function useAsBrush(index) {
+            activeBrushAsset = userLibrary[index].object;
+            setBrushMode('stamp');
+            closeModal('library-modal');
+            showToast('Equipped: ' + userLibrary[index].title);
+        }
+
+        function downloadGLB(index) {
+            const item = userLibrary[index];
+            const exporter = new THREE.GLTFExporter();
+            exporter.parse(item.object, (gltf) => {
+                const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = item.title.toLowerCase().replace(/\s+/g, '_') + '.gltf';
+                a.click();
+                showToast('Downloaded GLTF!');
+            }, { binary: true });
+        }
+
+        function downloadReact(index) {
+            const item = userLibrary[index];
+            const code =
+                `import React from 'react';\nexport default function ${item.title.replace(/\s+/g,'')}() {\n  return (\n    <div className="w-full h-screen bg-slate-950 flex items-center justify-center">\n      <h1 className="text-purple-400 font-bold">${item.title} (OmniStage Pro)</h1>\n    </div>\n  );\n}`;
+            const blob = new Blob([code], { type: 'text/jsx' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = item.title.replace(/\s+/g, '') + '.jsx';
+            a.click();
+            showToast('Downloaded JSX!');
+        }
+
+        function applyAndSaveAnimationToLibrary() {
+            const animType = document.getElementById('anim-type').value;
+            const speed = parseFloat(document.getElementById('anim-speed').value);
+            if (selectedObject) {
+                selectedObject.userData.animation = { type: animType, speed: speed };
+            }
+            renderer.render(scene, camera);
+            const preview = renderer.domElement.toDataURL('image/png');
+            userLibrary.push({ title: 'Animated [' + animType.toUpperCase() + ']', emoji: '✨', preview, object: selectedObject,
+                id: Date.now() });
+            renderLibraryGrid();
+            renderInlineLibraryPalette();
+            closeModal('animation-modal');
+            showToast('Animation saved to library!');
+        }
+
+        // ==================== HUMANOID VOXEL GRID ====================
+        function generateHumanoidVoxelGrid() {
+            const container = document.getElementById('voxel-grid-preview');
+            container.innerHTML = '';
+            voxelGridData = [];
+            const gridSize = 8;
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'voxel-preview-cell';
+                    const isActive = isHumanoidVoxel(x, y, gridSize);
+                    cell.style.background = isActive ? '#ec4899' : '#1e1b4b';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.onclick = () => {
+                        const idx = voxelGridData.findIndex(v => v.x === x && v.y === y);
+                        if (idx >= 0) { voxelGridData.splice(idx, 1);
+                            cell.style.background = '#1e1b4b'; } else { voxelGridData.push({ x, y });
+                            cell.style.background = '#ec4899'; }
+                    };
+                    if (isActive) voxelGridData.push({ x, y });
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function isHumanoidVoxel(x, y, size) {
+            const cx = size / 2;
+            const headY = size - 2;
+            const bodyY1 = 2;
+            const bodyY2 = 4;
+            if (y === headY && Math.abs(x - cx) < 1.5) return true;
+            if (y === headY - 1 && Math.abs(x - cx) < 2) return true;
+            if (y >= bodyY1 && y < bodyY2 && Math.abs(x - cx) < 2) return true;
+            if (y >= bodyY1 && y < bodyY2 + 1 && Math.abs(x - cx) < 1) return true;
+            if (y >= 1 && y < 3 && Math.abs(x - cx) < 0.8) return true;
+            if (y === 1 && (x === cx - 1 || x === cx + 1)) return true;
+            return false;
+        }
+
+        function applyHumanoidToSelected() {
+            if (!selectedObject) { showToast('Select an object first!'); return; }
+            const mesh = selectedObject.isMesh ? selectedObject : selectedObject.children.find(c => c.isMesh);
+            if (!mesh) { showToast('Selected object has no mesh!'); return; }
+            const humanoidGeo = new THREE.BoxGeometry(1, 2.5, 0.8, 8, 20, 6);
+            mesh.geometry.dispose();
+            mesh.geometry = humanoidGeo;
+            mesh.scale.set(1, 1, 1);
+            mesh.position.y = 0.5;
+            mesh.material.color.set(activeColor);
+            mesh.material.needsUpdate = true;
+            showToast('Applied humanoid voxel shape!');
+        }
+
+        function mergeSelectedIntoHumanoid() {
+            if (!selectedObject) { showToast('Select an object to merge!'); return; }
+            const template = document.getElementById('humanoid-template').value;
+            hairLength = parseInt(document.getElementById('hair-length-slider').value);
+            humanoidTemplate = template;
+            const humanoidGroup = new THREE.Group();
+            humanoidGroup.name = 'Humanoid_' + Date.now();
+            // Body
+            const bodyGeo = new THREE.CylinderGeometry(0.8, 0.7, 2.5, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: activeColor, roughness: 0.4, metalness: 0.3 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 1.25;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            humanoidGroup.add(body);
+            // Head
+            const headGeo = new THREE.SphereGeometry(0.55, 12, 12);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa, roughness: 0.5 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 2.8;
+            head.castShadow = true;
+            humanoidGroup.add(head);
+            // Arms
+            const armGeo = new THREE.CylinderGeometry(0.2, 0.25, 1.5, 6);
+            const armMat = new THREE.MeshStandardMaterial({ color: activeColor, roughness: 0.4 });
+            const leftArm = new THREE.Mesh(armGeo, armMat);
+            leftArm.position.set(-1, 2, 0);
+            leftArm.rotation.z = 0.3;
+            leftArm.castShadow = true;
+            humanoidGroup.add(leftArm);
+            const rightArm = new THREE.Mesh(armGeo, armMat);
+            rightArm.position.set(1, 2, 0);
+            rightArm.rotation.z = -0.3;
+            rightArm.castShadow = true;
+            humanoidGroup.add(rightArm);
+            // Legs
+            const legGeo = new THREE.CylinderGeometry(0.3, 0.28, 1.5, 6);
+            const legMat = new THREE.MeshStandardMaterial({ color: activeColor, roughness: 0.4 });
+            const leftLeg = new THREE.Mesh(legGeo, legMat);
+            leftLeg.position.set(-0.4, 0.5, 0);
+            leftLeg.castShadow = true;
+            humanoidGroup.add(leftLeg);
+            const rightLeg = new THREE.Mesh(legGeo, legMat);
+            rightLeg.position.set(0.4, 0.5, 0);
+            rightLeg.castShadow = true;
+            humanoidGroup.add(rightLeg);
+            // Hair particles
+            if (hairSimEnabled && hairLength > 0) {
+                const hairGeo = new THREE.SphereGeometry(0.06, 4, 4);
+                const hairMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.7 });
+                for (let i = 0; i < hairLength; i++) {
+                    const hair = new THREE.Mesh(hairGeo, hairMat);
+                    const angle = (i / hairLength) * Math.PI * 2;
+                    hair.position.set(Math.cos(angle) * 0.6, 3.2 + Math.random() * 0.4, Math.sin(angle) * 0.6);
+                    hair.castShadow = true;
+                    hair.userData.isHair = true;
+                    hair.userData.basePos = hair.position.clone();
+                    humanoidGroup.add(hair);
+                    humanoidHairParticles.push(hair);
+                }
+            }
+            // Remove selected object
+            scene.remove(selectedObject);
+            objects = objects.filter(o => o !== selectedObject);
+            scene.add(humanoidGroup);
+            objects.push(humanoidGroup);
+            selectedObject = humanoidGroup;
+            humanoidGroup.userData.animation = { type: template, speed: 1.0 };
+            if (!velocities.has(humanoidGroup.id)) velocities.set(humanoidGroup.id, new THREE.Vector3(0, 0, 0));
+            pushUndoState();
+            closeModal('humanoid-modal');
+            showToast('Merged into humanoid voxel grid with ' + template + ' animation!');
+        }
+
+        // ==================== JOYSTICK ====================
+        function adjustValueWithWheel(e) {
+            e.preventDefault();
+            joystickValue = Math.max(0.1, Math.min(5.0, joystickValue + (e.deltaY < 0 ? 0.1 : -0.1)));
+            document.getElementById('hud-radius-val').textContent = joystickValue.toFixed(1);
+            brushRadius = joystickValue;
+            const knob = document.getElementById('joystick-knob');
+            knob.style.transform = `scale(${0.7 + joystickValue * 0.2})`;
+        }
+
+        function startJoystickDrag(e) {
+            isDraggingJoystick = true;
+            window.addEventListener('pointermove', onJoystickDrag);
+            window.addEventListener('pointerup', stopJoystickDrag);
+        }
+
+        function onJoystickDrag(e) {
+            if (!isDraggingJoystick) return;
+            joystickValue = Math.max(0.1, Math.min(5.0, joystickValue + e.movementX * 0.015));
+            document.getElementById('hud-radius-val').textContent = joystickValue.toFixed(1);
+            brushRadius = joystickValue;
+            const knob = document.getElementById('joystick-knob');
+            knob.style.transform = `scale(${0.7 + joystickValue * 0.2})`;
+        }
+
+        function stopJoystickDrag() {
+            isDraggingJoystick = false;
+            window.removeEventListener('pointermove', onJoystickDrag);
+            window.removeEventListener('pointerup', stopJoystickDrag);
+        }
+
+        // ==================== UTILITY ====================
+        function showToast(msg) {
+            const toast = document.getElementById('toast-notification');
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            toast.classList.add('toast-animate');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.classList.remove('toast-animate');
+            }, 2800);
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ==================== ANIMATION LOOP ====================
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.002;
+
+            orbitControls.update();
+
+            // Audio reactivity
+            if (isAudioActive && analyser && audioElement && !audioElement.paused) {
+                analyser.getByteFrequencyData(audioDataArray);
+                const avg = audioDataArray.reduce((a, b) => a + b, 0) / audioDataArray.length;
+                updateWaveformBars(avg);
+                if (particleWavelengthSystem) {
+                    const positions = particleWavelengthSystem.geometry.attributes.position.array;
+                    for (let i = 0; i < particleCount; i++) {
+                        positions[i * 3 + 1] += Math.sin(time + i * 0.5) * 0.06 * (avg / 80) * audioReactivityStrength;
+                    }
+                    particleWavelengthSystem.geometry.attributes.position.needsUpdate = true;
+                    particleWavelengthSystem.material.opacity = 0.4 + (avg / 128) * 0.6;
+                }
+                if (selectedObject) {
+                    const baseScale = selectedObject.userData.baseScale || new THREE.Vector3(1, 1, 1);
+                    if (!selectedObject.userData.baseScale) selectedObject.userData.baseScale = baseScale.clone();
+                    if (audioAnimType === 'scale') {
+                        const s = 1 + (avg / 128) * 0.4 * audioReactivityStrength;
+                        selectedObject.scale.set(baseScale.x * s, baseScale.y * s, baseScale.z * s);
+                    } else if (audioAnimType === 'bounce') {
+                        selectedObject.position.y = (avg / 128) * 3 * audioReactivityStrength;
+                    } else if (audioAnimType === 'spin') {
+                        selectedObject.rotation.y += (avg / 128) * 0.05 * audioReactivityStrength;
+                    } else if (audioAnimType === 'color') {
+                        if (selectedObject.material && selectedObject.material.color) {
+                            const hue = (avg / 128) * 360;
+                            selectedObject.material.color.setHSL(hue / 360, 0.8, 0.5);
+                        }
+                    }
+                }
+            }
+
+            // Gravity & physics
+            if (gravityEnabled) {
+                const gStrength = parseFloat(document.getElementById('gravity-strength').value) || 9.8;
+                const bFactor = parseFloat(document.getElementById('bounce-factor').value) || 0.6;
+                objects.forEach(obj => {
+                    if (obj.userData.isGround || !velocities.has(obj.id)) return;
+                    const vel = velocities.get(obj.id);
+                    vel.y -= gStrength * 0.016;
+                    obj.position.add(vel.clone().multiplyScalar(0.016));
+                    if (obj.position.y < -1.5) {
+                        obj.position.y = -1.5;
+                        vel.y = Math.abs(vel.y) * bFactor;
+                        vel.x *= 0.95;
+                        vel.z *= 0.95;
+                    }
+                    const dist = obj.position.length();
+                    if (dist > safetySphereRadius - 0.3) {
+                        const dir = obj.position.clone().normalize();
+                        obj.position.copy(dir.multiplyScalar(safetySphereRadius - 0.3));
+                        vel.reflect(dir).multiplyScalar(bFactor);
+                    }
+                });
+            }
+
+            // Hair simulation
+            if (hairSimEnabled && humanoidHairParticles.length > 0) {
+                humanoidHairParticles.forEach((hair, i) => {
+                    if (hair.parent) {
+                        hair.position.y += Math.sin(time * 2 + i) * 0.01;
+                        hair.position.x += Math.cos(time * 1.5 + i * 2) * 0.005;
+                    } else {
+                        humanoidHairParticles.splice(i, 1);
+                    }
+                });
+            }
+
+            // Object animations
+            objects.forEach(obj => {
+                if (obj.userData.animation) {
+                    const anim = obj.userData.animation;
+                    if (anim.type === 'float') {
+                        obj.position.y += Math.sin(time * anim.speed) * 0.008;
+                    } else if (anim.type === 'spin') {
+                        obj.rotation.y += 0.008 * anim.speed;
+                    } else if (anim.type === 'pulse') {
+                        const s = 1 + Math.sin(time * anim.speed * 2) * 0.08;
+                        obj.scale.set(s, s, s);
+                    } else if (anim.type === 'bounce') {
+                        obj.position.y = Math.abs(Math.sin(time * anim.speed * 3)) * 2 - 1.5;
+                    } else if (anim.type === 'sway') {
+                        obj.rotation.z = Math.sin(time * anim.speed) * 0.1;
+                    } else if (anim.type === 'walk') {
+                        obj.rotation.x = Math.sin(time * anim.speed * 4) * 0.15;
+                        obj.position.z += Math.cos(time * anim.speed * 2) * 0.02;
+                    } else if (anim.type === 'run') {
+                        obj.rotation.x = Math.sin(time * anim.speed * 8) * 0.3;
+                        obj.position.z += Math.cos(time * anim.speed * 4) * 0.05;
+                    } else if (anim.type === 'jump') {
+                        obj.position.y = Math.max(-1.5, Math.abs(Math.sin(time * anim.speed * 2)) * 3 - 1.5);
+                    } else if (anim.type === 'dance') {
+                        obj.rotation.y += 0.03 * anim.speed;
+                        obj.rotation.z = Math.sin(time * anim.speed * 6) * 0.2;
+                        obj.position.y = -0.5 + Math.sin(time * anim.speed * 3) * 0.5;
+                    }
+                }
+            });
+
+            // Safety sphere visual update
+            if (safetySphereMesh) {
+                safetySphereMesh.material.opacity = 0.08 + Math.sin(time * 0.5) * 0.05;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function updateWaveformBars(avg) {
+            const container = document.getElementById('audio-waveform-container');
+            if (!container) return;
+            const bars = container.querySelectorAll('.audio-wave-bar');
+            bars.forEach((bar, i) => {
+                const h = 4 + (Math.abs(Math.sin(avg * 0.05 + i * 0.3)) * avg * 0.35);
+                bar.style.height = h + 'px';
+            });
+            const freqContainer = document.getElementById('audio-frequency-display');
+            if (freqContainer) {
+                const fBars = freqContainer.querySelectorAll('.audio-wave-bar');
+                fBars.forEach((bar, i) => {
+                    const freqVal = audioDataArray ? audioDataArray[i % audioDataArray.length] : 0;
+                    const h = 4 + (freqVal / 255) * 24;
+                    bar.style.height = h + 'px';
+                });
+            }
+        }
+
+        // ==================== BOOT ====================
+        window.onload = function() {
+            initStudio();
+            showToast('OmniStage Pro — Infinite Quantum Creator Studio ready!');
+        };
+    </script>
+</body>
+</html>
