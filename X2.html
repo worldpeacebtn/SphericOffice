@@ -248,6 +248,153 @@
             font-size: 10px;
         }
         .sort-btn.active { background: rgba(0,243,255,0.3); }
+        ```css
+/* ============================================================
+   X42 SPHERICAL NAVIGATION
+   ============================================================ */
+
+#sphere-navigation {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+
+    pointer-events: none;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 28px;
+
+    box-sizing: border-box;
+}
+
+
+/* Main spherical mouse-wheel buttons */
+.sphere-nav-btn,
+.sphere-center-btn {
+
+    pointer-events: auto;
+
+    width: 68px;
+    height: 68px;
+
+    border-radius: 50%;
+
+    border: 1px solid rgba(0, 243, 255, 0.65);
+
+    background:
+        radial-gradient(
+            circle at 35% 30%,
+            rgba(255,255,255,0.16),
+            rgba(0,243,255,0.08) 35%,
+            rgba(3,4,8,0.88) 75%
+        );
+
+    color: #00f3ff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 21px;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 0 12px rgba(0,243,255,0.25),
+        inset 0 0 18px rgba(0,243,255,0.12);
+
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        background 0.18s ease;
+
+    user-select: none;
+}
+
+
+/* Bigger center reset button */
+.sphere-center-btn {
+
+    width: 46px;
+    height: 46px;
+
+    font-size: 15px;
+
+    border-color:
+        rgba(255,0,234,0.55);
+
+    color: #ff00ea;
+
+    box-shadow:
+        0 0 12px rgba(255,0,234,0.2),
+        inset 0 0 15px rgba(255,0,234,0.1);
+}
+
+
+.sphere-nav-btn:hover {
+
+    transform:
+        scale(1.12);
+
+    background:
+        radial-gradient(
+            circle at 35% 30%,
+            rgba(255,255,255,0.25),
+            rgba(0,243,255,0.2) 40%,
+            rgba(3,4,8,0.9) 75%
+        );
+
+    box-shadow:
+        0 0 28px rgba(0,243,255,0.65),
+        inset 0 0 22px rgba(0,243,255,0.25);
+}
+
+
+.sphere-center-btn:hover {
+
+    transform:
+        scale(1.1);
+
+    box-shadow:
+        0 0 25px rgba(255,0,234,0.55),
+        inset 0 0 20px rgba(255,0,234,0.2);
+}
+
+
+.sphere-nav-btn:active,
+.sphere-center-btn:active {
+
+    transform:
+        scale(0.92);
+}
+
+
+/* Mobile */
+@media (max-width: 700px) {
+
+    #sphere-navigation {
+        padding: 0 12px;
+    }
+
+    .sphere-nav-btn {
+        width: 54px;
+        height: 54px;
+        font-size: 17px;
+    }
+
+    .sphere-center-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 13px;
+    }
+}
+```
+
     </style>
 </head>
 <body>
@@ -459,488 +606,1665 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script>
-        // Custom Notification System
-        function showNotification(msg) {
-            const notif = document.getElementById('system-notification');
-            notif.innerHTML = msg;
-            notif.style.display = 'block';
-            setTimeout(() => {
-                notif.style.display = 'none';
-            }, 4000);
+```html
+<script>
+    // ============================================================
+    // X42 SPHERICAL NEURAL BURO
+    // Camera / Navigation / Spawn Fix
+    // ============================================================
+
+    // ------------------------------------------------------------
+    // Notifications
+    // ------------------------------------------------------------
+    function showNotification(msg) {
+        const notif = document.getElementById('system-notification');
+        notif.innerHTML = msg;
+        notif.style.display = 'block';
+
+        setTimeout(() => {
+            notif.style.display = 'none';
+        }, 4000);
+    }
+
+
+    // ------------------------------------------------------------
+    // API KEY
+    // ------------------------------------------------------------
+    let currentKey = "";
+
+    window.addEventListener('load', () => {
+        const savedKey = localStorage.getItem('aoe_apikey');
+
+        if (
+            savedKey &&
+            localStorage.getItem('aoe_remember') === 'true'
+        ) {
+            currentKey = savedKey;
+
+            const input = document.getElementById('api-input');
+            const checkbox = document.getElementById('remember-key');
+
+            if (input) {
+                input.value = '*'.repeat(currentKey.length);
+            }
+
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        }
+    });
+
+    function typeKey(num) {
+        if (currentKey.length < 24) {
+            currentKey += num.toString();
+
+            const input = document.getElementById('api-input');
+
+            if (input) {
+                input.value = '*'.repeat(currentKey.length);
+            }
+        }
+    }
+
+    function clearKey() {
+        currentKey = "";
+
+        const input = document.getElementById('api-input');
+
+        if (input) {
+            input.value = "";
+        }
+    }
+
+    function saveKey() {
+        const remember = document.getElementById('remember-key').checked;
+
+        if (remember) {
+            localStorage.setItem('aoe_apikey', currentKey);
+            localStorage.setItem('aoe_remember', 'true');
+        } else {
+            localStorage.removeItem('aoe_apikey');
+            localStorage.setItem('aoe_remember', 'false');
         }
 
-        // Numpad Logic
-        let currentKey = "";
-        window.onload = () => {
-            if(localStorage.getItem('aoe_apikey') && localStorage.getItem('aoe_remember') === 'true') {
-                currentKey = localStorage.getItem('aoe_apikey');
-                document.getElementById('api-input').value = '*'.repeat(currentKey.length);
-                document.getElementById('remember-key').checked = true;
-            }
+        const panel = document.getElementById('panel-apikey');
+
+        panel.style.boxShadow =
+            "0 0 40px #00f3ff, inset 0 0 30px #00f3ff";
+
+        setTimeout(() => {
+            panel.style.boxShadow = "";
+        }, 300);
+
+        showNotification("API-SCHLÜSSEL GESPEICHERT");
+    }
+
+
+    // ------------------------------------------------------------
+    // GEMINI
+    // ------------------------------------------------------------
+    async function fetchGeminiResponse(prompt, systemInstruction = "") {
+
+        const apiKey = localStorage.getItem('aoe_apikey');
+
+        if (!apiKey || apiKey.trim() === "") {
+            showNotification(
+                "FEHLER: BITTE ZUERST API-SCHLÜSSEL IM ZENTRALEN PANEEL EINGEBEN."
+            );
+            return null;
+        }
+
+        const apiUrl =
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        const payload = {
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: prompt
+                        }
+                    ]
+                }
+            ]
         };
 
-        function typeKey(num) {
-            if (currentKey.length < 24) {
-                currentKey += num.toString();
-                document.getElementById('api-input').value = '*'.repeat(currentKey.length);
-            }
-        }
-        function clearKey() {
-            currentKey = "";
-            document.getElementById('api-input').value = "";
-        }
-        function saveKey() {
-            const remember = document.getElementById('remember-key').checked;
-            if (remember) {
-                localStorage.setItem('aoe_apikey', currentKey);
-                localStorage.setItem('aoe_remember', 'true');
-            } else {
-                localStorage.removeItem('aoe_apikey');
-                localStorage.setItem('aoe_remember', 'false');
-            }
-            const panel = document.getElementById('panel-apikey');
-            panel.style.boxShadow = "0 0 40px #00f3ff, inset 0 0 30px #00f3ff";
-            setTimeout(() => { panel.style.boxShadow = ""; }, 300);
-            showNotification("API-SCHLÜSSEL GESPEICHERT");
+        if (systemInstruction) {
+            payload.systemInstruction = {
+                parts: [
+                    {
+                        text: systemInstruction
+                    }
+                ]
+            };
         }
 
-        // Gemini API Interaction
-        async function fetchGeminiResponse(prompt, systemInstruction = "") {
-            const apiKey = localStorage.getItem('aoe_apikey');
-            if (!apiKey || apiKey.trim() === "") {
-                showNotification("FEHLER: BITTE ZUERST API-SCHLÜSSEL IM ZENTRALEN PANEEL EINGEBEN.");
-                return null;
-            }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-            const payload = { contents: [{ parts: [{ text: prompt }] }] };
-            if (systemInstruction) payload.systemInstruction = { parts: [{ text: systemInstruction }] };
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message);
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    return data.candidates[0].content.parts[0].text;
-                } else throw new Error("Unerwartete API-Antwortstruktur.");
-            } catch (error) {
-                console.error("Gemini API Error:", error);
-                showNotification("SYSTEMFEHLER: " + error.message);
-                return null;
-            }
-        }
+        try {
 
-        async function generateSnippet() {
-            const textArea = document.getElementById('app-snippet-text');
-            const btn = document.getElementById('btn-generate-snippet');
-            const prompt = textArea.value;
-            if(!prompt) { showNotification("BITTE BESCHREIBUNG FÜR DIE APP EINGEBEN."); return; }
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> GENERIERE...';
-            btn.disabled = true;
-            const sysInstruction = "Du bist ein KI-Programmier-Assistent in einem Cyberpunk-Büro. Generiere NUR den Code (Snippet) basierend auf der Anfrage. Keine Erklärungen davor oder danach. Wenn möglich, halte es kompakt.";
-            const response = await fetchGeminiResponse(prompt, sysInstruction);
-            if(response) { textArea.value = response; showNotification("APP-CODE ERFOLGREICH GENERIERT."); }
-            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> MIT GEMINI GENERIEREN';
-            btn.disabled = false;
-        }
-
-        async function sendChatMessage() {
-            const inputField = document.getElementById('chat-input-field');
-            const chatHistory = document.getElementById('chat-history');
-            const message = inputField.value.trim();
-            if (!message) return;
-            const userDiv = document.createElement('div');
-            userDiv.className = 'chat-msg user';
-            userDiv.textContent = message;
-            chatHistory.appendChild(userDiv);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-            inputField.value = "";
-            inputField.disabled = true;
-            const botDiv = document.createElement('div');
-            botDiv.className = 'chat-msg bot';
-            botDiv.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verarbeite...';
-            chatHistory.appendChild(botDiv);
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-            const sysInstruction = "Du bist 'X42 Neural Assistant', eine KI in einem Sphärischen Cyberspace-Büro namens 'St. Pauli WE'. Antworte präzise, leicht dystopisch aber extrem hilfreich. Halte deine Antworten relativ kurz (max 3-4 Sätze), da sie in einem kleinen UI-Panel angezeigt werden.";
-            const response = await fetchGeminiResponse(message, sysInstruction);
-            if(response) {
-                const formattedResponse = response.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-                botDiv.innerHTML = formattedResponse;
-            } else {
-                botDiv.innerHTML = "<span class='text-red-400'>[VERBINDUNGSABBRUCH - Überprüfe API Key]</span>";
-            }
-            chatHistory.scrollTop = chatHistory.scrollHeight;
-            inputField.disabled = false;
-            inputField.focus();
-        }
-
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const box = document.getElementById('upload-preview-box');
-                    box.style.backgroundImage = `url(${e.target.result})`;
-                    box.innerHTML = '';
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // GitHub Explorer Logic
-        let allRepos = [];
-        let repoSortMode = 'date'; // 'date' or 'name'
-        let currentRepo = null;
-        let currentFiles = [];
-
-        async function fetchRepositories() {
-            const container = document.getElementById('repo-list-container');
-            container.innerHTML = '<div class="text-xs text-gray-500">Lade Repositories...</div>';
-            try {
-                const response = await fetch('https://api.github.com/users/worldpeacebtn/repos?per_page=100&sort=updated');
-                if (!response.ok) throw new Error('GitHub API Fehler: ' + response.status);
-                allRepos = await response.json();
-                renderRepoList();
-            } catch (error) {
-                console.error('Fehler beim Laden der Repositories:', error);
-                container.innerHTML = `<div class="text-red-400 text-xs">Fehler: ${error.message}</div>`;
-            }
-        }
-
-        function renderRepoList() {
-            const container = document.getElementById('repo-list-container');
-            container.innerHTML = '';
-            if (allRepos.length === 0) {
-                container.innerHTML = '<div class="text-xs text-gray-500">Keine Repositories gefunden.</div>';
-                return;
-            }
-            // Sort repos
-            let sorted = [...allRepos];
-            if (repoSortMode === 'date') {
-                sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-            } else {
-                sorted.sort((a, b) => a.name.localeCompare(b.name));
-            }
-            sorted.forEach(repo => {
-                const div = document.createElement('div');
-                div.className = 'repo-item';
-                div.innerHTML = `<i class="fa-solid fa-folder mr-2 text-cyan-400"></i>${repo.name} <span class="text-gray-500 text-[10px]">(${new Date(repo.updated_at).toLocaleDateString()})</span>`;
-                div.onclick = () => loadRepoFiles(repo);
-                container.appendChild(div);
-            });
-        }
-
-        function setRepoSort(mode) {
-            repoSortMode = mode;
-            document.getElementById('sort-repo-date').classList.toggle('active', mode === 'date');
-            document.getElementById('sort-repo-name').classList.toggle('active', mode === 'name');
-            renderRepoList();
-        }
-
-        async function loadRepoFiles(repo) {
-            currentRepo = repo;
-            const fileList = document.getElementById('file-list');
-            const fileContainer = document.getElementById('file-list-container');
-            const previewContainer = document.getElementById('preview-container');
-            previewContainer.classList.add('hidden');
-            fileContainer.classList.remove('hidden');
-            fileList.innerHTML = '<div class="text-xs text-gray-500">Lade HTML-Dateien...</div>';
-            try {
-                const response = await fetch(`https://api.github.com/repos/worldpeacebtn/${repo.name}/contents/`);
-                if (!response.ok) throw new Error('Fehler beim Laden des Inhalts');
-                const contents = await response.json();
-                // Filter .html files
-                const htmlFiles = contents.filter(item => item.type === 'file' && item.name.endsWith('.html'));
-                currentFiles = htmlFiles;
-                renderFileList();
-            } catch (error) {
-                console.error('Fehler beim Laden der Dateien:', error);
-                fileList.innerHTML = `<div class="text-red-400 text-xs">Fehler: ${error.message}</div>`;
-            }
-        }
-
-        function renderFileList() {
-            const fileList = document.getElementById('file-list');
-            fileList.innerHTML = '';
-            if (currentFiles.length === 0) {
-                fileList.innerHTML = '<div class="text-xs text-gray-500">Keine HTML-Dateien gefunden.</div>';
-                return;
-            }
-            currentFiles.forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'file-item';
-                div.textContent = file.name.replace('.html', '');
-                div.onclick = () => previewFile(file);
-                fileList.appendChild(div);
-            });
-        }
-
-        function previewFile(file) {
-            const previewContainer = document.getElementById('preview-container');
-            const iframe = document.getElementById('preview-iframe');
-            previewContainer.classList.remove('hidden');
-            // Use raw content URL
-            iframe.src = file.download_url;
-            showNotification(`Lade Vorschau: ${file.name}`);
-        }
-
-        // 3D Scene Setup
-        let camera, scene, webglRenderer, cssRenderer, controls;
-        let cssObjects = [];
-        let time = 0;
-        let appsFlying = true;
-        const showWireframes = true; // Set to false to hide the wireframe polygons
-
-        init();
-        animate();
-
-        function init() {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-
-            camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 2000);
-            scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x030408, 0.001);
-
-            webglRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            webglRenderer.setSize(w, h);
-            webglRenderer.setPixelRatio(window.devicePixelRatio);
-            document.getElementById('webgl-container').appendChild(webglRenderer.domElement);
-
-            cssRenderer = new THREE.CSS3DRenderer();
-            cssRenderer.setSize(w, h);
-            document.getElementById('css-container').appendChild(cssRenderer.domElement);
-
-            controls = new THREE.OrbitControls(camera, cssRenderer.domElement);
-            controls.enableZoom = false;
-            controls.enablePan = false;
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            
-            camera.position.set(0, 0, 1);
-
-            buildCosmicEnvironment();
-            if (showWireframes) buildNeonWireframes();
-            buildCSSPanels();
-
-            window.addEventListener('resize', onWindowResize, false);
-            
-            document.getElementById('toggle-animation-btn').addEventListener('click', (e) => {
-                appsFlying = !appsFlying;
-                e.target.innerText = appsFlying ? "STOP FLYING APPS" : "RESUME FLYING APPS";
-                e.target.classList.toggle('text-pink-400');
-                e.target.classList.toggle('border-pink-500');
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
             });
 
-            // Initialize GitHub Explorer
-            fetchRepositories();
-        }
+            const data = await response.json();
 
-        function buildCosmicEnvironment() {
-            const sphereGeo = new THREE.SphereGeometry(900, 32, 32);
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const context = canvas.getContext('2d');
-            context.fillStyle = '#030408';
-            context.fillRect(0, 0, 512, 512);
-            context.strokeStyle = '#00f3ff';
-            context.lineWidth = 1;
-            context.globalAlpha = 0.15;
-            for(let i=0; i<=512; i+=32) {
-                context.beginPath(); context.moveTo(i, 0); context.lineTo(i, 512); context.stroke();
-                context.beginPath(); context.moveTo(0, i); context.lineTo(512, i); context.stroke();
+            if (data.error) {
+                throw new Error(data.error.message);
             }
-            const gridTex = new THREE.CanvasTexture(canvas);
-            gridTex.wrapS = THREE.RepeatWrapping;
-            gridTex.wrapT = THREE.RepeatWrapping;
-            gridTex.repeat.set(10, 10);
 
-            const sphereMat = new THREE.MeshBasicMaterial({
-                map: gridTex,
-                side: THREE.BackSide,
-                color: 0x5555aa
-            });
-            const environment = new THREE.Mesh(sphereGeo, sphereMat);
-            scene.add(environment);
-
-            const particlesGeo = new THREE.BufferGeometry();
-            const particleCount = 1000;
-            const posArray = new Float32Array(particleCount * 3);
-            for(let i = 0; i < particleCount * 3; i++) {
-                posArray[i] = (Math.random() - 0.5) * 1600;
+            if (
+                data.candidates &&
+                data.candidates[0] &&
+                data.candidates[0].content &&
+                data.candidates[0].content.parts &&
+                data.candidates[0].content.parts[0]
+            ) {
+                return data.candidates[0].content.parts[0].text;
             }
-            particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-            const pMat = new THREE.PointsMaterial({
-                size: 2,
-                color: 0xff00ea,
-                transparent: true,
-                opacity: 0.6,
-                blending: THREE.AdditiveBlending
+
+            throw new Error("Unerwartete API-Antwortstruktur.");
+
+        } catch (error) {
+
+            console.error("Gemini API Error:", error);
+
+            showNotification(
+                "SYSTEMFEHLER: " + error.message
+            );
+
+            return null;
+        }
+    }
+
+
+    // ------------------------------------------------------------
+    // APP GENERATOR
+    // ------------------------------------------------------------
+    async function generateSnippet() {
+
+        const textArea =
+            document.getElementById('app-snippet-text');
+
+        const btn =
+            document.getElementById('btn-generate-snippet');
+
+        const prompt = textArea.value;
+
+        if (!prompt) {
+            showNotification(
+                "BITTE BESCHREIBUNG FÜR DIE APP EINGEBEN."
+            );
+            return;
+        }
+
+        btn.innerHTML =
+            '<i class="fa-solid fa-spinner fa-spin"></i> GENERIERE...';
+
+        btn.disabled = true;
+
+        const sysInstruction =
+            "Du bist ein KI-Programmier-Assistent in einem Cyberpunk-Büro. " +
+            "Generiere NUR den Code (Snippet) basierend auf der Anfrage. " +
+            "Keine Erklärungen davor oder danach. Wenn möglich, halte es kompakt.";
+
+        const response =
+            await fetchGeminiResponse(
+                prompt,
+                sysInstruction
+            );
+
+        if (response) {
+
+            textArea.value = response;
+
+            showNotification(
+                "APP-CODE ERFOLGREICH GENERIERT."
+            );
+        }
+
+        btn.innerHTML =
+            '<i class="fa-solid fa-wand-magic-sparkles"></i> MIT GEMINI GENERIEREN';
+
+        btn.disabled = false;
+    }
+
+
+    // ------------------------------------------------------------
+    // CHAT
+    // ------------------------------------------------------------
+    async function sendChatMessage() {
+
+        const inputField =
+            document.getElementById('chat-input-field');
+
+        const chatHistory =
+            document.getElementById('chat-history');
+
+        const message =
+            inputField.value.trim();
+
+        if (!message) return;
+
+        const userDiv =
+            document.createElement('div');
+
+        userDiv.className = 'chat-msg user';
+        userDiv.textContent = message;
+
+        chatHistory.appendChild(userDiv);
+
+        chatHistory.scrollTop =
+            chatHistory.scrollHeight;
+
+        inputField.value = "";
+        inputField.disabled = true;
+
+        const botDiv =
+            document.createElement('div');
+
+        botDiv.className = 'chat-msg bot';
+
+        botDiv.innerHTML =
+            '<i class="fa-solid fa-circle-notch fa-spin"></i> Verarbeite...';
+
+        chatHistory.appendChild(botDiv);
+
+        chatHistory.scrollTop =
+            chatHistory.scrollHeight;
+
+        const sysInstruction =
+            "Du bist 'X42 Neural Assistant', eine KI in einem " +
+            "Sphärischen Cyberspace-Büro namens 'St. Pauli WE'. " +
+            "Antworte präzise, leicht dystopisch aber extrem hilfreich. " +
+            "Halte deine Antworten relativ kurz (max 3-4 Sätze), " +
+            "da sie in einem kleinen UI-Panel angezeigt werden.";
+
+        const response =
+            await fetchGeminiResponse(
+                message,
+                sysInstruction
+            );
+
+        if (response) {
+
+            const formattedResponse =
+                response
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                    .replace(/\n/g, '<br>');
+
+            botDiv.innerHTML =
+                formattedResponse;
+
+        } else {
+
+            botDiv.innerHTML =
+                "<span class='text-red-400'>" +
+                "[VERBINDUNGSABBRUCH - Überprüfe API Key]" +
+                "</span>";
+        }
+
+        chatHistory.scrollTop =
+            chatHistory.scrollHeight;
+
+        inputField.disabled = false;
+        inputField.focus();
+    }
+
+
+    // ------------------------------------------------------------
+    // IMAGE UPLOAD
+    // ------------------------------------------------------------
+    function handleImageUpload(event) {
+
+        const file =
+            event.target.files[0];
+
+        if (!file) return;
+
+        const reader =
+            new FileReader();
+
+        reader.onload = function(e) {
+
+            const box =
+                document.getElementById(
+                    'upload-preview-box'
+                );
+
+            box.style.backgroundImage =
+                `url(${e.target.result})`;
+
+            box.innerHTML = '';
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+
+    // ============================================================
+    // THREE.JS ENGINE
+    // ============================================================
+
+    let camera;
+    let scene;
+    let webglRenderer;
+    let cssRenderer;
+    let controls;
+
+    let cssObjects = [];
+
+    let time = 0;
+
+    let appsFlying = true;
+
+
+    // ------------------------------------------------------------
+    // SPHERICAL WORLD SETTINGS
+    // ------------------------------------------------------------
+
+    // Panels live around this radius.
+    const WORLD_RADIUS = 650;
+
+    // Objects are not allowed near the camera.
+    // This gives us a safe "head space".
+    const CAMERA_SAFE_RADIUS = 180;
+
+    // How far one navigation click rotates the world.
+    const NAV_STEP = THREE.MathUtils.degToRad(45);
+
+    // Current horizontal viewing angle.
+    let viewYaw = 0;
+
+
+    // ------------------------------------------------------------
+    // INITIALIZATION
+    // ------------------------------------------------------------
+    init();
+    animate();
+
+
+    function init() {
+
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+
+        // --------------------------------------------------------
+        // CAMERA
+        // --------------------------------------------------------
+
+        camera =
+            new THREE.PerspectiveCamera(
+                70,
+                w / h,
+                0.5,
+                2500
+            );
+
+        // TRUE CENTER.
+        // No z=1 offset anymore.
+        camera.position.set(0, 0, 0);
+
+
+        // --------------------------------------------------------
+        // SCENE
+        // --------------------------------------------------------
+
+        scene =
+            new THREE.Scene();
+
+        scene.fog =
+            new THREE.FogExp2(
+                0x030408,
+                0.001
+            );
+
+
+        // --------------------------------------------------------
+        // WEBGL
+        // --------------------------------------------------------
+
+        webglRenderer =
+            new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true
             });
-            const particleMesh = new THREE.Points(particlesGeo, pMat);
-            scene.add(particleMesh);
-        }
 
-        function createWireframePolygon(points, color, scale, position, rotation) {
-            const material = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.3 });
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.LineLoop(geometry);
-            line.scale.set(scale, scale, scale);
-            line.position.copy(position);
-            line.rotation.copy(rotation);
-            scene.add(line);
-            return line;
-        }
+        webglRenderer.setSize(w, h);
 
-        function buildNeonWireframes() {
-            const bunnyPoints = [
-                new THREE.Vector3(0, -1, 0), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0.5, 2, 0),
-                new THREE.Vector3(0.2, 0.5, 0), new THREE.Vector3(-0.2, 0.5, 0), new THREE.Vector3(-0.5, 2, 0),
-                new THREE.Vector3(-1, 0, 0)
-            ];
-            
-            const wolfPoints = [
-                new THREE.Vector3(0, -1, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(1.5, 1.5, -0.5),
-                new THREE.Vector3(0.5, 1, 0), new THREE.Vector3(0, 1.2, 0.5), new THREE.Vector3(-0.5, 1, 0),
-                new THREE.Vector3(-1.5, 1.5, -0.5), new THREE.Vector3(-1, 0, 0)
-            ];
+        webglRenderer.setPixelRatio(
+            Math.min(window.devicePixelRatio, 2)
+        );
 
-            const catPoints = [
-                new THREE.Vector3(0, -0.8, 0), new THREE.Vector3(1, 0, 0), new THREE.Vector3(1.2, 1.5, 0),
-                new THREE.Vector3(0.5, 0.8, 0.2), new THREE.Vector3(0, 1, 0.5), new THREE.Vector3(-0.5, 0.8, 0.2),
-                new THREE.Vector3(-1.2, 1.5, 0), new THREE.Vector3(-1, 0, 0)
-            ];
+        document
+            .getElementById('webgl-container')
+            .appendChild(
+                webglRenderer.domElement
+            );
 
-            // Kleinere Skalierung und weiter entfernt, damit sie nicht stören
-            createWireframePolygon(bunnyPoints, 0xff00ea, 15, new THREE.Vector3(0, 200, -500), new THREE.Euler(0, 0, 0));
-            createWireframePolygon(wolfPoints, 0x00f3ff, 12, new THREE.Vector3(400, 150, 300), new THREE.Euler(0, Math.PI * 1.25, 0));
-            createWireframePolygon(catPoints, 0x8a2be2, 12, new THREE.Vector3(-400, 150, 300), new THREE.Euler(0, -Math.PI * 1.25, 0));
-        }
 
-        function createCSS3DObject(elementId, position, rotation) {
-            const el = document.getElementById(elementId).cloneNode(true);
-            el.style.display = 'flex';
-            el.id = el.id + "_3d";
-            
-            const object = new THREE.CSS3DObject(el);
-            object.position.copy(position);
-            object.rotation.copy(rotation);
-            scene.add(object);
-            cssObjects.push({ obj: object, basePos: position.clone(), offset: Math.random() * Math.PI * 2 });
-            return object;
-        }
+        // --------------------------------------------------------
+        // CSS3D
+        // --------------------------------------------------------
 
-        function createCustomDock(title, contentHTML, theme, position, rotation) {
-            const template = document.getElementById('panel-dock').cloneNode(true);
-            template.style.display = 'flex';
-            template.id = "";
-            template.querySelector('.dock-title').innerText = title;
-            template.querySelector('.dock-content').innerHTML = contentHTML;
-            if (theme) template.classList.add(theme);
+        cssRenderer =
+            new THREE.CSS3DRenderer();
 
-            const object = new THREE.CSS3DObject(template);
-            object.position.copy(position);
-            object.rotation.copy(rotation);
-            scene.add(object);
-            cssObjects.push({ obj: object, basePos: position.clone(), offset: Math.random() * Math.PI * 2 });
-            return object;
-        }
+        cssRenderer.setSize(w, h);
 
-        function buildCSSPanels() {
-            const radius = 600;
+        document
+            .getElementById('css-container')
+            .appendChild(
+                cssRenderer.domElement
+            );
 
-            function calcSphericalPos(angleDeg, yOffset) {
-                const rad = THREE.MathUtils.degToRad(angleDeg);
-                return new THREE.Vector3(
-                    Math.sin(rad) * radius,
-                    yOffset,
-                    Math.cos(rad) * -radius
+
+        // --------------------------------------------------------
+        // ORBIT CONTROLS
+        // --------------------------------------------------------
+
+        controls =
+            new THREE.OrbitControls(
+                camera,
+                webglRenderer.domElement
+            );
+
+        controls.enableZoom = false;
+        controls.enablePan = false;
+
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+
+        controls.rotateSpeed = 0.35;
+
+        // Keep camera at the origin.
+        controls.minDistance = 0;
+        controls.maxDistance = 0;
+
+        // Vertical look limits.
+        controls.minPolarAngle =
+            THREE.MathUtils.degToRad(55);
+
+        controls.maxPolarAngle =
+            THREE.MathUtils.degToRad(125);
+
+        // Start looking straight forward.
+        controls.target.set(
+            0,
+            0,
+            -WORLD_RADIUS
+        );
+
+        controls.update();
+
+
+        // --------------------------------------------------------
+        // BUILD WORLD
+        // --------------------------------------------------------
+
+        buildCosmicEnvironment();
+
+        buildNeonWireframes();
+
+        buildCSSPanels();
+
+        createNavigationControls();
+
+
+        // --------------------------------------------------------
+        // RESIZE
+        // --------------------------------------------------------
+
+        window.addEventListener(
+            'resize',
+            onWindowResize,
+            false
+        );
+
+
+        // --------------------------------------------------------
+        // FLYING APPS
+        // --------------------------------------------------------
+
+        const toggleButton =
+            document.getElementById(
+                'toggle-animation-btn'
+            );
+
+        toggleButton.addEventListener(
+            'click',
+            (e) => {
+
+                appsFlying =
+                    !appsFlying;
+
+                e.target.innerText =
+                    appsFlying
+                        ? "STOP FLYING APPS"
+                        : "RESUME FLYING APPS";
+
+                e.target.classList.toggle(
+                    'text-pink-400'
+                );
+
+                e.target.classList.toggle(
+                    'border-pink-500'
                 );
             }
-            
-            function calcLookAt(pos) {
-                // Fix mirroring: add PI rotation around Y axis
-                const target = new THREE.Vector3(0, pos.y, 0);
-                const mat = new THREE.Matrix4().lookAt(pos, target, new THREE.Vector3(0,1,0));
-                const rot = new THREE.Euler().setFromRotationMatrix(mat);
-                rot.y += Math.PI; // Korrektur gegen Spiegelung
-                return rot;
-            }
+        );
+    }
 
-            // 1. API Key (Front Left)
-            let p1 = calcSphericalPos(-25, 0);
-            createCSS3DObject('panel-apikey', p1, calcLookAt(p1));
 
-            // 2. AoE Starter (Front Right)
-            let p2 = calcSphericalPos(25, 0);
-            createCSS3DObject('panel-aoe', p2, calcLookAt(p2));
+    // ============================================================
+    // NAVIGATION BUTTONS
+    // ============================================================
 
-            // 3. Upload App (Far Left)
-            let p3 = calcSphericalPos(-60, 0);
-            createCSS3DObject('panel-upload', p3, calcLookAt(p3));
+    function createNavigationControls() {
 
-            // 4. RSS News (Far Right)
-            let p4 = calcSphericalPos(60, 0);
-            createCSS3DObject('panel-rss', p4, calcLookAt(p4));
+        const nav =
+            document.createElement('div');
 
-            // 5. GitHub Explorer (Oben Mitte)
-            let p5 = calcSphericalPos(0, 250);
-            createCSS3DObject('panel-github', p5, calcLookAt(p5));
+        nav.id = 'sphere-navigation';
 
-            // --- Upper Row (Docks & Memories) --- //
-            let p6 = calcSphericalPos(0, 220);
-            createCustomDock("ERINNERUNGSSPHÄRE", "<i class='fa-solid fa-video text-3xl mb-2 text-pink-400'></i><br>VIDEOS & DATEN", "pink-theme", p6, calcLookAt(p6));
+        nav.innerHTML = `
+            <button
+                id="nav-left"
+                class="sphere-nav-btn"
+                aria-label="Navigate left">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
 
-            let p7 = calcSphericalPos(-35, 220);
-            createCustomDock("DOCK 01", "<i class='fa-solid fa-briefcase text-3xl mb-2 text-cyan-400'></i><br>ARBEITSPLATZ", "", p7, calcLookAt(p7));
+            <button
+                id="nav-center"
+                class="sphere-center-btn"
+                aria-label="Center view">
+                <i class="fa-solid fa-crosshairs"></i>
+            </button>
 
-            let p8 = calcSphericalPos(35, 220);
-            createCustomDock("DOCK 02", "<i class='fa-solid fa-brain text-3xl mb-2 text-purple-400'></i><br>SPEICHER-<br>ERINNERUNGEN", "purple-theme", p8, calcLookAt(p8));
+            <button
+                id="nav-right"
+                class="sphere-nav-btn"
+                aria-label="Navigate right">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+        `;
 
-            // Neural Assistant
-            let p9 = calcSphericalPos(-95, -100);
-            createCSS3DObject('panel-assistant', p9, calcLookAt(p9));
-            
-            // Placeholders
-            let p10 = calcSphericalPos(95, -100);
-            createCustomDock("LEER 02", "MODUL<br>PLATZHALTER", "", p10, calcLookAt(p10));
-            
-            let p11 = calcSphericalPos(-130, 50);
-            createCustomDock("LEER 03", "MODUL<br>PLATZHALTER", "", p11, calcLookAt(p11));
-            
-            let p12 = calcSphericalPos(130, 50);
-            createCustomDock("LEER 04", "MODUL<br>PLATZHALTER", "", p12, calcLookAt(p12));
-        }
+        document.body.appendChild(nav);
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            webglRenderer.setSize(window.innerWidth, window.innerHeight);
-            cssRenderer.setSize(window.innerWidth, window.innerHeight);
-        }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            if (appsFlying) {
-                time += 0.015;
-            }
+        // --------------------------------------------------------
+        // LEFT
+        // --------------------------------------------------------
 
-            cssObjects.forEach(item => {
-                if (appsFlying) {
-                    item.obj.position.y = item.basePos.y + Math.sin(time + item.offset) * 15;
+        document
+            .getElementById('nav-left')
+            .addEventListener(
+                'click',
+                () => rotateView(-NAV_STEP)
+            );
+
+
+        // --------------------------------------------------------
+        // RIGHT
+        // --------------------------------------------------------
+
+        document
+            .getElementById('nav-right')
+            .addEventListener(
+                'click',
+                () => rotateView(NAV_STEP)
+            );
+
+
+        // --------------------------------------------------------
+        // CENTER
+        // --------------------------------------------------------
+
+        document
+            .getElementById('nav-center')
+            .addEventListener(
+                'click',
+                centerView
+            );
+
+
+        // --------------------------------------------------------
+        // MOUSE WHEEL
+        // --------------------------------------------------------
+
+        window.addEventListener(
+            'wheel',
+            (event) => {
+
+                // Only horizontal navigation.
+                // Prevent the page from zooming.
+                event.preventDefault();
+
+                if (event.deltaY > 0) {
+                    rotateView(NAV_STEP * 0.35);
+                } else {
+                    rotateView(-NAV_STEP * 0.35);
                 }
+
+            },
+            {
+                passive: false
+            }
+        );
+    }
+
+
+    function rotateView(amount) {
+
+        viewYaw += amount;
+
+        const distance = WORLD_RADIUS;
+
+        const targetX =
+            Math.sin(viewYaw) * distance;
+
+        const targetZ =
+            -Math.cos(viewYaw) * distance;
+
+        controls.target.set(
+            targetX,
+            0,
+            targetZ
+        );
+
+        controls.update();
+    }
+
+
+    function centerView() {
+
+        viewYaw = 0;
+
+        controls.target.set(
+            0,
+            0,
+            -WORLD_RADIUS
+        );
+
+        controls.update();
+
+        showNotification(
+            "VIEW ZENTRIERT<br>" +
+            "<span class='text-xs text-cyan-400'>" +
+            "CAMERA SAFE POSITION RESTORED" +
+            "</span>"
+        );
+    }
+
+
+    // ============================================================
+    // COSMIC ENVIRONMENT
+    // ============================================================
+
+    function buildCosmicEnvironment() {
+
+        // --------------------------------------------------------
+        // INNER SPHERE
+        // --------------------------------------------------------
+
+        const sphereGeo =
+            new THREE.SphereGeometry(
+                1100,
+                48,
+                48
+            );
+
+
+        const canvas =
+            document.createElement('canvas');
+
+        canvas.width = 1024;
+        canvas.height = 1024;
+
+        const context =
+            canvas.getContext('2d');
+
+
+        context.fillStyle =
+            '#030408';
+
+        context.fillRect(
+            0,
+            0,
+            1024,
+            1024
+        );
+
+
+        context.strokeStyle =
+            '#00f3ff';
+
+        context.lineWidth = 1;
+
+        context.globalAlpha = 0.12;
+
+
+        for (
+            let i = 0;
+            i <= 1024;
+            i += 64
+        ) {
+
+            context.beginPath();
+
+            context.moveTo(i, 0);
+
+            context.lineTo(
+                i,
+                1024
+            );
+
+            context.stroke();
+
+
+            context.beginPath();
+
+            context.moveTo(0, i);
+
+            context.lineTo(
+                1024,
+                i
+            );
+
+            context.stroke();
+        }
+
+
+        const gridTex =
+            new THREE.CanvasTexture(
+                canvas
+            );
+
+        gridTex.wrapS =
+            THREE.RepeatWrapping;
+
+        gridTex.wrapT =
+            THREE.RepeatWrapping;
+
+        gridTex.repeat.set(
+            12,
+            12
+        );
+
+
+        const sphereMat =
+            new THREE.MeshBasicMaterial({
+
+                map: gridTex,
+
+                side: THREE.BackSide,
+
+                color: 0x5555aa,
+
+                // Important:
+                // never write the giant sky sphere
+                // into the depth buffer.
+                depthWrite: false
             });
 
-            controls.update();
-            
-            webglRenderer.render(scene, camera);
-            cssRenderer.render(scene, camera);
+
+        const environment =
+            new THREE.Mesh(
+                sphereGeo,
+                sphereMat
+            );
+
+        environment.renderOrder = -100;
+
+        scene.add(environment);
+
+
+        // --------------------------------------------------------
+        // STARS
+        // --------------------------------------------------------
+
+        const particlesGeo =
+            new THREE.BufferGeometry();
+
+        const particleCount = 1200;
+
+        const posArray =
+            new Float32Array(
+                particleCount * 3
+            );
+
+
+        for (
+            let i = 0;
+            i < particleCount;
+            i++
+        ) {
+
+            // Generate stars in a large shell,
+            // NOT directly around the camera.
+
+            const direction =
+                new THREE.Vector3(
+                    Math.random() - 0.5,
+                    Math.random() - 0.5,
+                    Math.random() - 0.5
+                ).normalize();
+
+            const distance =
+                THREE.MathUtils.randFloat(
+                    250,
+                    1000
+                );
+
+            posArray[i * 3] =
+                direction.x * distance;
+
+            posArray[i * 3 + 1] =
+                direction.y * distance;
+
+            posArray[i * 3 + 2] =
+                direction.z * distance;
         }
-    </script>
-</body>
-</html>
+
+
+        particlesGeo.setAttribute(
+            'position',
+            new THREE.BufferAttribute(
+                posArray,
+                3
+            )
+        );
+
+
+        const pMat =
+            new THREE.PointsMaterial({
+
+                size: 2,
+
+                color: 0xff00ea,
+
+                transparent: true,
+
+                opacity: 0.6,
+
+                blending:
+                    THREE.AdditiveBlending,
+
+                depthWrite: false
+            });
+
+
+        const particleMesh =
+            new THREE.Points(
+                particlesGeo,
+                pMat
+            );
+
+        scene.add(
+            particleMesh
+        );
+    }
+
+
+    // ============================================================
+    // WIREFRAME OBJECTS
+    // ============================================================
+
+    function createWireframePolygon(
+        points,
+        color,
+        scale,
+        position,
+        rotation
+    ) {
+
+        const material =
+            new THREE.LineBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.8,
+                depthWrite: false
+            });
+
+
+        const geometry =
+            new THREE.BufferGeometry()
+                .setFromPoints(points);
+
+
+        const line =
+            new THREE.LineLoop(
+                geometry,
+                material
+            );
+
+
+        line.scale.set(
+            scale,
+            scale,
+            scale
+        );
+
+
+        line.position.copy(
+            position
+        );
+
+
+        line.rotation.copy(
+            rotation
+        );
+
+
+        line.renderOrder = 1;
+
+        scene.add(line);
+
+        return line;
+    }
+
+
+    function buildNeonWireframes() {
+
+        const bunnyPoints = [
+
+            new THREE.Vector3(
+                0,
+                -1,
+                0
+            ),
+
+            new THREE.Vector3(
+                1,
+                0,
+                0
+            ),
+
+            new THREE.Vector3(
+                0.5,
+                2,
+                0
+            ),
+
+            new THREE.Vector3(
+                0.2,
+                0.5,
+                0
+            ),
+
+            new THREE.Vector3(
+                -0.2,
+                0.5,
+                0
+            ),
+
+            new THREE.Vector3(
+                -0.5,
+                2,
+                0
+            ),
+
+            new THREE.Vector3(
+                -1,
+                0,
+                0
+            )
+        ];
+
+
+        const wolfPoints = [
+
+            new THREE.Vector3(
+                0,
+                -1,
+                1
+            ),
+
+            new THREE.Vector3(
+                1,
+                0,
+                0
+            ),
+
+            new THREE.Vector3(
+                1.5,
+                1.5,
+                -0.5
+            ),
+
+            new THREE.Vector3(
+                0.5,
+                1,
+                0
+            ),
+
+            new THREE.Vector3(
+                0,
+                1.2,
+                0.5
+            ),
+
+            new THREE.Vector3(
+                -0.5,
+                1,
+                0
+            ),
+
+            new THREE.Vector3(
+                -1.5,
+                1.5,
+                -0.5
+            ),
+
+            new THREE.Vector3(
+                -1,
+                0,
+                0
+            )
+        ];
+
+
+        const catPoints = [
+
+            new THREE.Vector3(
+                0,
+                -0.8,
+                0
+            ),
+
+            new THREE.Vector3(
+                1,
+                0,
+                0
+            ),
+
+            new THREE.Vector3(
+                1.2,
+                1.5,
+                0
+            ),
+
+            new THREE.Vector3(
+                0.5,
+                0.8,
+                0.2
+            ),
+
+            new THREE.Vector3(
+                0,
+                1,
+                0.5
+            ),
+
+            new THREE.Vector3(
+                -0.5,
+                0.8,
+                0.2
+            ),
+
+            new THREE.Vector3(
+                -1.2,
+                1.5,
+                0
+            ),
+
+            new THREE.Vector3(
+                -1,
+                0,
+                0
+            )
+        ];
+
+
+        // IMPORTANT:
+        // The old bunny was at y=200,z=-500.
+        // Its giant 40x scale made it possible for its
+        // geometry to visually dominate the front view.
+        //
+        // Now everything is pushed safely to the upper
+        // peripheral areas.
+
+        createWireframePolygon(
+            bunnyPoints,
+            0xff00ea,
+            24,
+            new THREE.Vector3(
+                -150,
+                330,
+                -900
+            ),
+            new THREE.Euler(
+                0,
+                0,
+                0
+            )
+        );
+
+
+        createWireframePolygon(
+            wolfPoints,
+            0x00f3ff,
+            22,
+            new THREE.Vector3(
+                650,
+                300,
+                -250
+            ),
+            new THREE.Euler(
+                0,
+                Math.PI * 1.25,
+                0
+            )
+        );
+
+
+        createWireframePolygon(
+            catPoints,
+            0x8a2be2,
+            22,
+            new THREE.Vector3(
+                -650,
+                300,
+                -250
+            ),
+            new THREE.Euler(
+                0,
+                -Math.PI * 1.25,
+                0
+            )
+        );
+    }
+
+
+    // ============================================================
+    // SAFE SPHERICAL POSITION
+    // ============================================================
+
+    function getSafeSphericalPosition(
+        angleDeg,
+        yOffset,
+        radius = WORLD_RADIUS
+    ) {
+
+        const rad =
+            THREE.MathUtils.degToRad(
+                angleDeg
+            );
+
+
+        // Force minimum radial distance.
+        const safeRadius =
+            Math.max(
+                radius,
+                CAMERA_SAFE_RADIUS + 100
+            );
+
+
+        return new THREE.Vector3(
+
+            Math.sin(rad) *
+                safeRadius,
+
+            yOffset,
+
+            Math.cos(rad) *
+                -safeRadius
+        );
+    }
+
+
+    // ============================================================
+    // CSS3D OBJECTS
+    // ============================================================
+
+    function createCSS3DObject(
+        elementId,
+        position,
+        rotation
+    ) {
+
+        const original =
+            document.getElementById(
+                elementId
+            );
+
+        const el =
+            original.cloneNode(true);
+
+
+        el.style.display = 'flex';
+
+        el.id =
+            el.id + "_3d";
+
+
+        const object =
+            new THREE.CSS3DObject(
+                el
+            );
+
+
+        object.position.copy(
+            position
+        );
+
+        object.rotation.copy(
+            rotation
+        );
+
+
+        scene.add(object);
+
+
+        cssObjects.push({
+
+            obj: object,
+
+            basePos:
+                position.clone(),
+
+            offset:
+                Math.random() *
+                Math.PI * 2
+
+        });
+
+
+        return object;
+    }
+
+
+    function createCustomDock(
+        title,
+        contentHTML,
+        theme,
+        position,
+        rotation
+    ) {
+
+        const template =
+            document
+                .getElementById(
+                    'panel-dock'
+                )
+                .cloneNode(true);
+
+
+        template.style.display =
+            'flex';
+
+        template.id = "";
+
+
+        template
+            .querySelector(
+                '.dock-title'
+            )
+            .innerText = title;
+
+
+        template
+            .querySelector(
+                '.dock-content'
+            )
+            .innerHTML =
+                contentHTML;
+
+
+        if (theme) {
+            template.classList.add(
+                theme
+            );
+        }
+
+
+        const object =
+            new THREE.CSS3DObject(
+                template
+            );
+
+
+        object.position.copy(
+            position
+        );
+
+        object.rotation.copy(
+            rotation
+        );
+
+
+        scene.add(object);
+
+
+        cssObjects.push({
+
+            obj: object,
+
+            basePos:
+                position.clone(),
+
+            offset:
+                Math.random() *
+                Math.PI * 2
+
+        });
+
+
+        return object;
+    }
+
+
+    // ============================================================
+    // FIXED CSS3D LOOK-AT
+    // ============================================================
+
+    function calcLookAt(position) {
+
+        const object =
+            new THREE.Object3D();
+
+        object.position.copy(
+            position
+        );
+
+
+        // This is much safer than using
+        // Matrix4.lookAt(position,target)
+        // as an object's rotation.
+        //
+        // CSS3D panels are oriented by
+        // Object3D.lookAt().
+
+        object.lookAt(
+            new THREE.Vector3(
+                0,
+                position.y,
+                0
+            )
+        );
+
+
+        return object.rotation.clone();
+    }
+
+
+    // ============================================================
+    // BUILD PANELS
+    // ============================================================
+
+    function buildCSSPanels() {
+
+        const radius =
+            WORLD_RADIUS;
+
+
+        function calcSphericalPos(
+            angleDeg,
+            yOffset
+        ) {
+
+            return getSafeSphericalPosition(
+                angleDeg,
+                yOffset,
+                radius
+            );
+        }
+
+
+        // --------------------------------------------------------
+        // FRONT
+        // --------------------------------------------------------
+
+        const p1 =
+            calcSphericalPos(
+                -25,
+                0
+            );
+
+        createCSS3DObject(
+            'panel-apikey',
+            p1,
+            calcLookAt(p1)
+        );
+
+
+        const p2 =
+            calcSphericalPos(
+                25,
+                0
+            );
+
+        createCSS3DObject(
+            'panel-aoe',
+            p2,
+            calcLookAt(p2)
+        );
+
+
+        // --------------------------------------------------------
+        // SIDES
+        // --------------------------------------------------------
+
+        const p3 =
+            calcSphericalPos(
+                -60,
+                0
+            );
+
+        createCSS3DObject(
+            'panel-upload',
+            p3,
+            calcLookAt(p3)
+        );
+
+
+        const p4 =
+            calcSphericalPos(
+                60,
+                0
+            );
+
+        createCSS3DObject(
+            'panel-rss',
+            p4,
+            calcLookAt(p4)
+        );
+
+
+        // --------------------------------------------------------
+        // UPPER ROW
+        // --------------------------------------------------------
+
+        const p5 =
+            calcSphericalPos(
+                0,
+                220
+            );
+
+        createCustomDock(
+            "ERINNERUNGSSPHÄRE",
+            "<i class='fa-solid fa-video text-3xl mb-2 text-pink-400'></i><br>VIDEOS & DATEN",
+            "pink-theme",
+            p5,
+            calcLookAt(p5)
+        );
+
+
+        const p6 =
+            calcSphericalPos(
+                -35,
+                220
+            );
+
+        createCustomDock(
+            "DOCK 01",
+            "<i class='fa-solid fa-briefcase text-3xl mb-2 text-cyan-400'></i><br>ARBEITSPLATZ",
+            "",
+            p6,
+            calcLookAt(p6)
+        );
+
+
+        const p7 =
+            calcSphericalPos(
+                35,
+                220
+            );
+
+        createCustomDock(
+            "DOCK 02",
+            "<i class='fa-solid fa-brain text-3xl mb-2 text-purple-400'></i><br>SPEICHER-<br>ERINNERUNGEN",
+            "purple-theme",
+            p7,
+            calcLookAt(p7)
+        );
+
+
+        // --------------------------------------------------------
+        // LOWER / SIDE
+        // --------------------------------------------------------
+
+        const p8 =
+            calcSphericalPos(
+                -95,
+                -100
+            );
+
+        createCSS3DObject(
+            'panel-assistant',
+            p8,
+            calcLookAt(p8)
+        );
+
+
+        const p9 =
+            calcSphericalPos(
+                95,
+                -100
+            );
+
+        createCustomDock(
+            "LEER 02",
+            "MODUL<br>PLATZHALTER",
+            "",
+            p9,
+            calcLookAt(p9)
+        );
+
+
+        const p10 =
+            calcSphericalPos(
+                -130,
+                50
+            );
+
+        createCustomDock(
+            "LEER 03",
+            "MODUL<br>PLATZHALTER",
+            "",
+            p10,
+            calcLookAt(p10)
+        );
+
+
+        const p11 =
+            calcSphericalPos(
+                130,
+                50
+            );
+
+        createCustomDock(
+            "LEER 04",
+            "MODUL<br>PLATZHALTER",
+            "",
+            p11,
+            calcLookAt(p11)
+        );
+    }
+
+
+    // ============================================================
+    // RESIZE
+    // ============================================================
+
+    function onWindowResize() {
+
+        const w =
+            window.innerWidth;
+
+        const h =
+            window.innerHeight;
+
+
+        camera.aspect =
+            w / h;
+
+        camera.updateProjectionMatrix();
+
+
+        webglRenderer.setSize(
+            w,
+            h
+        );
+
+        cssRenderer.setSize(
+            w,
+            h
+        );
+    }
+
+
+    // ============================================================
+    // ANIMATION
+    // ============================================================
+
+    function animate() {
+
+        requestAnimationFrame(
+            animate
+        );
+
+
+        if (appsFlying) {
+            time += 0.015;
+        }
+
+
+        cssObjects.forEach(
+            item => {
+
+                if (appsFlying) {
+
+                    item.obj.position.y =
+                        item.basePos.y +
+                        Math.sin(
+                            time +
+                            item.offset
+                        ) * 15;
+
+                }
+
+            }
+        );
+
+
+        controls.update();
+
+
+        // WebGL first
+        webglRenderer.render(
+            scene,
+            camera
+        );
+
+
+        // CSS panels afterwards
+        cssRenderer.render(
+            scene,
+            camera
+        );
+    }
+</script>
